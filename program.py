@@ -170,3 +170,29 @@ def Clean_1_Jet(Train, Val, Test):
 TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
 TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
 
+def compiling_model(n_jet):
+
+    model = Sequential()
+    if n_jet == 0:
+        model.add(Dense(units=64, activation='relu', input_dim=24, kernel_regularizer=l2(0.001)))
+    elif n_jet == 1:
+        model.add(Dense(units=64, activation='relu', input_dim=27, kernel_regularizer=l2(0.001)))
+    elif n_jet == 2:
+        model.add(Dense(units=64, activation='relu', input_dim=31, kernel_regularizer=l2(0.001)))
+    model.add(Dense(128, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(128, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(64, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(32, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(16, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(8, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dense(units=1, activation='sigmoid'))
+    model.compile(loss= 'binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.summary()
+
+    if n_jet == 0:
+        model.save("KerasNN_Model0.h5")
+    elif n_jet == 1:
+        model.save("KerasNN_Model1.h5")
+    elif n_jet == 2:
+        model.save("KerasNN_Model2.h5")
+    return model
