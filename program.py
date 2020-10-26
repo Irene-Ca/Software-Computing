@@ -196,3 +196,98 @@ def compiling_model(n_jet):
     elif n_jet == 2:
         model.save("KerasNN_Model2.h5")
     return model
+
+def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
+    re_model = compiling_model(n_jet)
+    checkpoint = ModelCheckpoint( 'model.h5',
+                                 monitor='val_accuracy',
+                                 mode='max',
+                                 save_best_only=True,
+                                 verbose=1)
+    if n_jet == 0:
+#        re_model = keras.models.load_model("KerasNN_Model0.h5")
+        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    elif n_jet == 1:
+#        re_model = keras.models.load_model("KerasNN_Model1.h5")
+        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    elif n_jet ==2:
+#        re_model = keras.models.load_model("KerasNN_Model2.h5")
+        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    return re_model, history
+
+
+model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
+model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
+model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+
+def plot_NN(n_jet, history, model):
+    lt = ['Model loss for ', n_jet,' Jets DataSet']
+    at = ['Accuracy for ', n_jet,' Jets DataSet']
+    ot = ['TestSet Distribution for ', n_jet, ' Jets DataSet']
+    l_save = ['Loss_', n_jet, 'Jet.pdf']
+    a_save = ['Acc_', n_jet, 'Jet.pdf']
+    o_save =['DNN_Output_', n_jet, 'Jet.pdf']
+    
+    l_title =' '.join([str(elem) for elem in lt])
+    a_title =' '.join([str(elem) for elem in at])
+    o_title =' '.join([str(elem) for elem in ot])
+    loss_name_fig =' '.join([str(elem) for elem in l_save])
+    acc_name_fig =' '.join([str(elem) for elem in a_save])
+    output_name_fig =' '.join([str(elem) for elem in o_save])
+    
+    
+    plt.figure()
+    plt.plot(history.history['loss'], Label = 'Loss')
+    plt.plot(history.history['val_loss'])
+    plt.title(l_title)
+    plt.ylabel('loss')
+    plt.xlabel('epochs')
+    plt.legend(['training', 'validation'], loc='upper right')
+    plt.savefig(loss_name_fig)
+    plt.clf()
+
+    plt.figure()
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title(a_title)
+    plt.ylabel('accuracy')
+    plt.xlabel('epochs')
+    plt.legend(['training', 'validation'], loc='lower right')        
+    plt.savefig(acc_name_fig)
+    plt.clf()
+    
+    plt.figure()
+    plt.title(o_title)
+    plt.xlabel('DNN Output')
+    plt.ylabel('Counts')
+    plt.yscale('log')
+    plt.legend()
+    if n_jet == 0:
+        DNN_Output0 = model.predict(TestSet0)[:,0]
+        plt.hist([DNN_Output0[Te_Label0==0], DNN_Output0[Te_Label0==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
+    elif n_jet == 1:
+        DNN_Output1 = model.predict(TestSet1)[:,0]
+        plt.hist([DNN_Output1[Te_Label1==0], DNN_Output1[Te_Label1==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
+    elif n_jet == 2:
+        DNN_Output2 = model.predict(TestSet2)[:,0]
+        plt.hist([DNN_Output2[Te_Label2==0], DNN_Output2[Te_Label2==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
+    plt.savefig(output_name_fig)
+    plt.clf()
+    
+
+def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
+    #Cut = Accepting only Classified Data which is classified with Cut% safety
+    Label_Cut = Label[Output > Cut]
+    KaggleWeight_Cut = KaggleWeight[Output > Cut]
+    Label_Predict_Cut = Label_Predict[Output > Cut]
+    Label_Predict_Cut = np.concatenate((Label_Predict[Output > Cut], Label_Predict[Output < (1-Cut)]))
+    Label_Cut = pd.concat([Label_Cut, Label[Output < (1-Cut)]], ignore_index=True)
+    KaggleWeight_Cut = pd.concat([KaggleWeight_Cut, KaggleWeight[Output < (1-Cut)]], ignore_index=True)
+    s = np.sum(KaggleWeight_Cut[Label_Predict_Cut & Label_Cut == 1])
+    KaggleWeight_Cut = KaggleWeight_Cut[Label_Predict_Cut == 1]
+    Label_Cut = Label_Cut[Label_Predict_Cut == 1]
+    b = np.sum(KaggleWeight_Cut[Label_Cut == 0])
+    breg = 10
+    return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
+
+AMS_value= AMS(1, 0.5, Te_Label, Label_Predict, Te_KaggleWeight, Output)
