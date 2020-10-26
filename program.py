@@ -290,4 +290,37 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     breg = 10
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
 
-AMS_value= AMS(1, 0.5, Te_Label, Label_Predict, Te_KaggleWeight, Output)
+
+def Plot_AMS_NN(x):
+
+    DNN_Output0 = model0.predict(TestSet0)[:,0]
+    DNN_Output1 = model1.predict(TestSet1)[:,0]
+    DNN_Output2 = model2.predict(TestSet2)[:,0]
+    
+    Label_Predict0 = model0.predict_classes(TestSet0)[:,0]
+    Label_Predict1 = model1.predict_classes(TestSet1)[:,0]
+    Label_Predict2 = model2.predict_classes(TestSet2)[:,0]
+
+    Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
+    Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
+    Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
+    Output = np.concatenate((DNN_Output0, DNN_Output1, DNN_Output2))
+
+    AMS_values = np.zeros(np.size(x))
+    i = 0
+    while i < np.size(x):
+        AMS_values[i] = AMS(1, x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
+        i += 1
+    MaxAMS = np.amax(AMS_values)
+    print('Maximum AMS for TestSet:', MaxAMS)
+    plt.plot(Cut, AMS_values)
+    plt.xlabel('Cut')
+    plt.ylabel('AMS Score')
+    plt.savefig('AMS_Score.pdf')
+    plt.clf()
+    return
+
+Cut = np.linspace(0.5, 1, num=200)
+AMS_values = Plot_AMS_NN(Cut)
+
+
