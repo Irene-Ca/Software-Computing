@@ -27,6 +27,23 @@ feature_list.remove('KaggleWeight')
 feature_list.remove('PRI_jet_num')
 
 def Adding_Feature_Category(df):
+    '''
+    Denotes to which category the event belongs and adds a new feature to the dataset.
+    It can assume three possible values: 
+        2 for the boosted category,
+        1 for the VBF category,
+        0 for those events that do not belong to a defined category.
+
+    Parameters
+    ----------
+    df : pandas.dataframe
+        Dataframe containing data readed from CSV file.
+    Returns
+    -------
+    df : pandas.dataframe
+        Dataframe with a new column added for the "Category" feature.
+
+    '''
     #Category 0 = Non , 1 = VBF , 2 = Boosted
     df_Non= pd.DataFrame(columns= df.columns)
     df_VBF = pd.DataFrame(columns= df.columns)
@@ -73,7 +90,19 @@ def Adding_Feature_Category(df):
 
 
 def Clean_Missing_Data(df):
+    '''
+    Replaces the default values used for missing data (-999.0) with the average of the defined values of the corresponding feature.
+    
+    Parameters
+    ----------
+    df : pandas.dataframe
 
+    Returns
+    -------
+    df : pandas.dataframe
+        Dataframe with mean values in place of the missing data values.
+
+    '''
     for col in feature_list:
         df[col].replace({-999 : np.nan}, inplace= True)
         m = df[col].mean()
@@ -87,6 +116,20 @@ df = Adding_Feature_Category(df)
 df = df.sort_index(axis=0)
 
 def Label_to_Binary(Label):
+    '''
+    Encode target labels with value 0 for background and 1 for signal.
+
+    Parameters
+    ----------
+    Label : String
+        label of the event (b or s).
+
+    Returns
+    -------
+    Label : Int
+        numerical label (0 or 1).
+
+    '''
 
     Label[Label == 'b'] = 0
     Label[Label == 's'] = 1
@@ -100,7 +143,26 @@ scaler = StandardScaler()
 df[feature_list] = scaler.fit_transform(df[feature_list])
 
 def Train_Valid_Test(df):
+    '''
+    Splits the dataset into training set, validation set and test set with respect to the KaggleSet variable.
 
+    Parameters
+    ----------
+    df : pandas.dataframe
+        dataset containing all the events.
+
+    Returns
+    -------
+    TrainingSet : pandas.dataframe
+        events used for training.
+    ValidationSet : pandas.dataframe
+        events used for validation.
+    TestSet : pandas.dataframe
+        events used for test.
+    Unused : pandas.dataframe
+        unused events.
+
+    '''
     TrainingSet = df[df['KaggleSet'] == 't']
     ValidationSet = df[df['KaggleSet'] == 'b']
     TestSet = df[df['KaggleSet'] == 'v']
@@ -109,14 +171,50 @@ def Train_Valid_Test(df):
 
 
 def Split_Jets(df):
+    '''
+    Distinguishes the events with respect to the number of jets ('PRI_jet_num' variable) into three different subsets:
+        events with zero jets, events with one jet and events with two or more jets.
 
+    Parameters
+    ----------
+    df : pandas.dataframe
+
+    Returns
+    -------
+    df0 : pandas.dataframe
+        events with zero jets.
+    df1 : pandas.dataframe
+        events with one jet.
+    df2 : pandas.dataframe
+        events with two or more jets.
+
+    '''
     df0 = df[df['PRI_jet_num'] == 0]
     df1 = df[df['PRI_jet_num'] == 1]
     df2 = df[df['PRI_jet_num'] >= 2]
     return df0, df1, df2
 
 def Separate_data_label(df):
+    '''
+    Function to have the Label, Weight and KaggleWeight variables in different sets, separated by the dataset.
 
+    Parameters
+    ----------
+    df : pandas.dataframe
+        dataset containing all the variables together.
+
+    Returns
+    -------
+    df : pandas.dataframe
+        dataset without Label, Weight and KaggleWeight variables.
+    Label : pandas.dataframe
+        set containing the Label variables.
+    Weight : pandas.dataframe
+        set containing the Weight variables.
+    KaggleWeight : pandas.dataframe
+        set containing the KaggleWeight variables.
+
+    '''
     Label = df['Label']
     Weight = df['Weight']
     KaggleWeight = df['KaggleWeight']
@@ -144,7 +242,28 @@ TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1
 TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
 
 def Clean_0_Jet(Train, Val, Test):
+    '''
+    Removes variable columns that are meaningless for events with 0 jets.
 
+    Parameters
+    ----------
+    Train : pandas.dataframe
+        dataset with also meaningless variables.
+    Val : pandas.dataframe
+        dataset with also meaningless variables.
+    Test : pandas.dataframe
+        dataset with also meaningless variables.
+
+    Returns
+    -------
+    Train : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN training.
+    Val : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN validation.
+    Test : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN test.
+
+    '''
     sets = [Train, Val, Test]
     for df in sets:
         df.drop('PRI_jet_leading_pt', axis=1, inplace=True)
@@ -157,7 +276,28 @@ def Clean_0_Jet(Train, Val, Test):
     return Train, Val, Test
 
 def Clean_1_Jet(Train, Val, Test):
+    '''
+    Removes variable columns that are meaningless for events with 1 jet.
 
+    Parameters
+    ----------
+    Train : pandas.dataframe
+        dataset with also meaningless variables.
+    Val : pandas.dataframe
+        dataset with also meaningless variables.
+    Test : pandas.dataframe
+        dataset with also meaningless variables.
+
+    Returns
+    -------
+    Train : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN training.
+    Val : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN validation.
+    Test : pandas.dataframe
+        dataset cleaned of meaningless variables ready for the NN test.
+
+    '''
     sets = [Train, Val, Test]
     for df in sets:
         df.drop('PRI_jet_subleading_pt', axis=1, inplace=True)
@@ -171,7 +311,21 @@ TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet
 TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
 
 def compiling_model(n_jet):
+    '''
+    
+    Neural Network construction, compilation and saving.
 
+    Parameters
+    ----------
+    n_jet : Int
+        denotes on which subset the NN has to be trained.
+        The distinction is between events with zero jets (n_jet = 0), events with one jet (n_jet =1) and events with two or more jets (n_jet =2).
+
+    Returns
+    -------
+    None.
+    
+    '''
     model = Sequential()
     if n_jet == 0:
         model.add(Dense(units=64, activation='relu', input_dim=24, kernel_regularizer=l2(0.001)))
@@ -198,6 +352,35 @@ def compiling_model(n_jet):
     return model
 
 def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
+    '''
+    
+    Neural Network training and validation.
+    
+    Parameters
+    ----------
+    n_jet : Int
+        denotes on which subset the NN has to be trained.
+        The distinction is between events with zero jets (n_jet = 0), events with one jet (n_jet =1) and events with two or more jets (n_jet =2).
+    TrainingSet : pandas.dataframe
+        events used for the training.
+    T_Label : pandas.dataframe
+        labels corresponding to training data.
+    ValidationSet : pandas.dataframe
+        events used for validation.
+    V_Label : pandas.dataframe
+        labels corresponding to validation data.
+    epoch : Int
+        number of epochs.
+
+    Returns
+    -------
+    re_model : keras.engine.sequential.Sequential
+        Sequntial NN object trained on a specific subset, defined by n_jet.
+    history : History.history
+        Record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
+
+
+    '''
     re_model = compiling_model(n_jet)
     checkpoint = ModelCheckpoint( 'model.h5',
                                  monitor='val_accuracy',
@@ -221,6 +404,26 @@ model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_
 model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
 
 def plot_NN(n_jet, history, model):
+    '''
+    Produces three different plots:
+        a) loss function evaluated at each epoch for the training and the validation set
+        b) accuracy evaluated at each epoch for the training and the validation set
+        c) output of the Deep Neural Network: value of the prediction obtained on the events of the test sets.
+
+    Parameters
+    ----------
+    n_jet : Int
+        denotes which NN performances to plot.
+    history : History.history
+        Record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
+    model : keras.engine.sequential.Sequential
+        Sequntial NN object trained on a specific subset, defined by n_jet.
+
+    Returns
+    -------
+    None.
+
+    '''
     lt = ['Model loss for ', n_jet,' Jets DataSet']
     at = ['Accuracy for ', n_jet,' Jets DataSet']
     ot = ['TestSet Distribution for ', n_jet, ' Jets DataSet']
@@ -276,6 +479,39 @@ def plot_NN(n_jet, history, model):
     
 
 def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
+
+    '''
+    Function to compute the Approximate Median Significance(AMS) of the total classificator.
+
+    Parameters
+    ----------
+    Model : Int
+        it determines which the model is used for the classification.
+        if Model == 1 : NNs 
+        if Model == 2 : BDT.
+    Cut : float
+        it must assume values in the range [0,1[
+    Label : numpy.array
+        true labels of the whole test set.
+    Label_Predict : numpy.array
+        class inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
+    KaggleWeight : numpy.array
+        KaggleWeight variables of the whole test set.
+    Output : numpy.array
+        if Model == 1 : 
+            inferences done by the three Neural Networks over the corresponding test sets.
+            They are joined together to have predictions for each event of the whole test set.
+        if Model == 2 :
+            inferences done by the BDT over the test set.
+
+    Returns
+    -------
+    float
+        Value of the AMS function.
+
+    '''
+    
     #Cut = Accepting only Classified Data which is classified with Cut% safety
     Label_Cut = Label[Output > Cut]
     KaggleWeight_Cut = KaggleWeight[Output > Cut]
@@ -292,7 +528,20 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
 
 
 def Plot_AMS_NN(x):
+    '''
+    Computes and plots the AMS value for different values of the Cut variable.
+    The maximum AMS score is printed.
 
+    Parameters
+    ----------
+    x : numpy.linspace
+        Sequence of numbers between 0.5 and 1.
+
+    Returns
+    -------
+    None.
+
+    '''
     DNN_Output0 = model0.predict(TestSet0)[:,0]
     DNN_Output1 = model1.predict(TestSet1)[:,0]
     DNN_Output2 = model2.predict(TestSet2)[:,0]
