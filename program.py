@@ -1,5 +1,7 @@
+import os
 import numpy as np
 import pandas as pd
+import requests
 from tensorflow import keras
 from keras.models import Sequential
 from keras.layers.core import Dense
@@ -11,8 +13,51 @@ pd.options.mode.chained_assignment = None
 
 seed = 12345
 np.random.seed(seed)
+path = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
 
-df = pd.read_csv('atlas-higgs-challenge-2014-v2.csv')
+def get_data(datapath):
+    '''
+    Downloads the dataset, saves it on disk.
+
+    Parameters
+    ----------
+    datapath : String
+        path of data in csv format.
+
+    Raises
+    ------
+    SystemExit
+        prints an error and calls sys.exit .
+
+    Returns
+    -------
+    dataset : pandas.dataframe
+        Dataframe containing data readed from CSV file.
+
+    '''
+    if("http" in datapath):
+        print("Downloading Dataset")
+        try:
+            # Download
+            dataset = requests.get(datapath)
+            dataset.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print("Error: Could not download file")
+            raise SystemExit(e)
+        response = requests.get(datapath)
+        print("Writing dataset on disk") 
+        with open('data.csv', 'wb') as f:
+            f.write(response.content)
+        datapath = "data.csv"
+    
+    # Reading dataset and creating pandas.DataFrame.
+    dataset = pd.read_csv(datapath,header=0)
+    print("Entries ", len(dataset))        
+    
+    return dataset
+
+#df = get_data(path)
+df = get_data('atlas-higgs-challenge-2014-v2.csv')
 
 #EventId column is useless because pandas.dataframe has a default index 
 df.drop('EventId', axis=1, inplace=True)
@@ -312,7 +357,6 @@ TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet
 
 def compiling_model(n_jet):
     '''
-    
     Neural Network construction, compilation and saving.
 
     Parameters
@@ -344,11 +388,14 @@ def compiling_model(n_jet):
     model.summary()
 
     if n_jet == 0:
-        model.save("KerasNN_Model0.h5")
+        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+        model.save('KerasNN_Model0')
     elif n_jet == 1:
-        model.save("KerasNN_Model1.h5")
+        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+        model.save('KerasNN_Model1')
     elif n_jet == 2:
-        model.save("KerasNN_Model2.h5")
+        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+        model.save('KerasNN_Model2')
     return model
 
 def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
@@ -381,20 +428,20 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
 
 
     '''
-    re_model = compiling_model(n_jet)
-    checkpoint = ModelCheckpoint( 'model.h5',
+    checkpoint = ModelCheckpoint( 'model_check_point.h5',
                                  monitor='val_accuracy',
                                  mode='max',
                                  save_best_only=True,
                                  verbose=1)
+    re_model = compiling_model(n_jet)
     if n_jet == 0:
-#        re_model = keras.models.load_model("KerasNN_Model0.h5")
+        #re_model = keras.models.load_model('KerasNN_Model0')
         history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     elif n_jet == 1:
-#        re_model = keras.models.load_model("KerasNN_Model1.h5")
+        #re_model = keras.models.load_model('KerasNN_Model1')
         history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     elif n_jet ==2:
-#        re_model = keras.models.load_model("KerasNN_Model2.h5")
+        #re_model = keras.models.load_model('KerasNN_Model2')
         history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     return re_model, history
 
