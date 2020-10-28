@@ -156,6 +156,20 @@ df = df.sort_index(axis=0)
 
 
 def Label_to_Binary(Label):
+    '''
+    Encode target labels with value 0 for background and 1 for signal.
+
+    Parameters
+    ----------
+    Label : String
+        label of the event (b or s).
+
+    Returns
+    -------
+    Label : Int
+        numerical label (0 or 1).
+
+    '''
 
     Label[Label == 'b'] = 0
     Label[Label == 's'] = 1
@@ -176,7 +190,26 @@ df[feature_list] = scaler.fit_transform(df[feature_list])
 print('PRI_jet_num', df['PRI_jet_num'].dtype)
 
 def Train_Valid_Test(df):
+    '''
+    Splits the dataset into training set, validation set and test set with respect to the KaggleSet variable.
 
+    Parameters
+    ----------
+    df : pandas.dataframe
+        dataset containing all the events.
+
+    Returns
+    -------
+    TrainingSet : pandas.dataframe
+        events used for training.
+    ValidationSet : pandas.dataframe
+        events used for validation.
+    TestSet : pandas.dataframe
+        events used for test.
+    Unused : pandas.dataframe
+        unused events.
+
+    '''
     TrainingSet = df[df['KaggleSet'] == 't']
     ValidationSet = df[df['KaggleSet'] == 'b']
     TestSet = df[df['KaggleSet'] == 'v']
@@ -184,7 +217,26 @@ def Train_Valid_Test(df):
     return TrainingSet, ValidationSet, TestSet, Unused
 
 def Separate_data_label(df):
+    '''
+    Function to have the Label, Weight and KaggleWeight variables in different sets, separated by the dataset.
 
+    Parameters
+    ----------
+    df : pandas.dataframe
+        dataset containing all the variables together.
+
+    Returns
+    -------
+    df : pandas.dataframe
+        dataset without Label, Weight and KaggleWeight variables.
+    Label : pandas.dataframe
+        set containing the Label variables.
+    Weight : pandas.dataframe
+        set containing the Weight variables.
+    KaggleWeight : pandas.dataframe
+        set containing the KaggleWeight variables.
+
+    '''
     Label = df['Label']
     Weight = df['Weight']
     KaggleWeight = df['KaggleWeight']
@@ -207,7 +259,20 @@ dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWei
 dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
 
 def cross_validation(seed):
+    '''
+    function to perform cross validation before training.
 
+    Parameters
+    ----------
+    seed : Int
+        Random seed. It's important to properly compare the scores with different parameters.
+
+    Returns
+    -------
+    res : list(string)
+        Evaluation history.
+
+    '''
     # Parameters to tune with cross validation
     CVparams = {'objective' : 'binary:logistic',
                 'bst:max_depth' : 9,
@@ -224,7 +289,19 @@ def cross_validation(seed):
     return res
 
 def train_BDT():
+    '''
+    Trains a BDT with given parameters, values founded using cross validation.
 
+    Returns
+    -------
+    score : Int
+        evaluation score at the best iteration.
+    iteration : Int
+        at which boosting iteration the best score has occurred.
+    ntree_lim : Int
+        variable used to get predictions from the best iteration during BDT training.
+
+    '''
     #These are the parameters used by the train method of xgb
     # so they have been already updated to their best values
     #founded with hyperparameters tuning with cross validation
@@ -263,3 +340,81 @@ I must find a way to save also early_stopping
 '''
 print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
 
+def plot_BDT(bst):
+    '''
+    Produces two different plots:
+        a) Plot specified tree
+        b) Plot importance based on fitted trees.
+
+    Parameters
+    ----------
+    bst : XGBModel
+        XGBModel instance.
+
+    Returns
+    -------
+    None.
+
+    '''
+    xgb.plot_tree(bst, num_trees=4)
+    fig = plt.gcf()
+    fig.set_size_inches(150, 100)
+    fig.savefig('plotTreeHiggs.pdf')
+    plt.clf()
+    plt.show()
+
+    xgb.plot_importance(bst)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    fig.savefig('plotImportanceHiggs.pdf') 
+    plt.clf()
+    plt.show()
+
+
+def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
+
+    '''
+    Function to compute the Approximate Median Significance(AMS) of the total classificator.
+
+    Parameters
+    ----------
+    Model : Int
+        it determines which the model is used for the classification.
+        if Model == 1 : NNs 
+        if Model == 2 : BDT.
+    Cut : float
+        it must assume values in the range [0,1[
+    Label : numpy.array
+        true labels of the whole test set.
+    Label_Predict : numpy.array
+        class inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
+    KaggleWeight : numpy.array
+        KaggleWeight variables of the whole test set.
+    Output : numpy.array
+        if Model == 1 : 
+            inferences done by the three Neural Networks over the corresponding test sets.
+            They are joined together to have predictions for each event of the whole test set.
+        if Model == 2 :
+            inferences done by the BDT over the test set.
+
+    Returns
+    -------
+    float
+        Value of the AMS function.
+
+    '''
+    
+    #Cut = Accepting only Classified Data which is classified with Cut% safety
+    Label_Cut = Label[Output > Cut]
+    KaggleWeight_Cut = KaggleWeight[Output > Cut]
+    Label_Predict_Cut = Label_Predict[Output > Cut]
+    Label_Predict_Cut = np.concatenate((Label_Predict[Output > Cut], Label_Predict[Output < (1-Cut)]))
+    Label_Cut = pd.concat([Label_Cut, Label[Output < (1-Cut)]], ignore_index=True)
+    KaggleWeight_Cut = pd.concat([KaggleWeight_Cut, KaggleWeight[Output < (1-Cut)]], ignore_index=True)
+    s = np.sum(KaggleWeight_Cut[Label_Predict_Cut & Label_Cut == 1])
+    KaggleWeight_Cut = KaggleWeight_Cut[Label_Predict_Cut == 1]
+    Label_Cut = Label_Cut[Label_Predict_Cut == 1]
+    b = np.sum(KaggleWeight_Cut[Label_Cut == 0])
+    breg = 10
+    return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
