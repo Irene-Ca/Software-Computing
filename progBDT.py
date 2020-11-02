@@ -73,8 +73,8 @@ def get_data(datapath):
     print("Entries ", len(dataset))        
     
     return dataset
-df = get_data(path)
-#df = get_data(path='atlas-higgs-challenge-2014-v2.csv')
+#df = get_data(path)
+df = get_data('atlas-higgs-challenge-2014-v2.csv')
 df.drop('EventId', axis=1, inplace=True)
 
 Epoch_Value = 40
@@ -324,14 +324,14 @@ def train_BDT():
     score = bst.best_score
     iteration = bst.best_iteration
     ntree_lim = bst.best_ntree_limit
-    return score, iteration, ntree_lim
+    return score, iteration, ntree_lim, bst
 res = cross_validation(seed)
 print('CV results'"\n", res)
 
 
-score, iteration, ntree_lim = train_BDT()
-bst = xgb.Booster({'nthread': 4})  # init model
-bst.load_model('BDT.model')  # load data
+score, iteration, ntree_lim,bst = train_BDT()
+#bst = xgb.Booster({'nthread': 4})  # init model
+#bst.load_model('BDT.model')  # load data
 
 '''
 It will give error because: 'Booster' object has no attribute 'best_score'
@@ -418,3 +418,32 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     b = np.sum(KaggleWeight_Cut[Label_Cut == 0])
     breg = 10
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
+
+def Plot_AMS(x):
+    
+    Output = bst.predict(dtest, ntree_limit=ntree_lim)
+    Output = np.asarray(Output)
+    Label_Predict = np.asarray([np.round(line) for line in Output])
+    #Label_Predict = pd.Series([np.round(line) for line in Output])
+    print('best_preds',Label_Predict)
+    test_labels = np.asarray([line for line in Te_Label])
+    #test_labels = pd.Series([line for line in Te_Label])
+    accuracy_test = accuracy_score(test_labels,Label_Predict)
+    print('accuracy test', accuracy_test)
+
+    AMS_values = np.zeros(np.size(x))
+    i = 0
+    while i < np.size(x):
+        AMS_values[i] = AMS(2, x[i], test_labels, Label_Predict, Te_KaggleWeight, Output)
+        i += 1
+    MaxAMS = np.amax(AMS_values)
+    print('Maximum AMS for TestSet:', MaxAMS)
+    plt.plot(Cut, AMS_values)
+    plt.xlabel('Cut')
+    plt.ylabel('AMS Score')
+    plt.savefig('AMS_Score.pdf')
+    plt.clf()
+    return
+
+Cut = np.linspace(0.5, 1, num=200)
+AMS_values = Plot_AMS(Cut)
