@@ -419,18 +419,19 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     breg = 10
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
 
-def Plot_AMS(x):
-    
-    Output = bst.predict(dtest, ntree_limit=ntree_lim)
-    Output = np.asarray(Output)
-    Label_Predict = np.asarray([np.round(line) for line in Output])
-    #Label_Predict = pd.Series([np.round(line) for line in Output])
-    print('best_preds',Label_Predict)
-    test_labels = np.asarray([line for line in Te_Label])
-    #test_labels = pd.Series([line for line in Te_Label])
-    accuracy_test = accuracy_score(test_labels,Label_Predict)
-    print('accuracy test', accuracy_test)
 
+Output = bst.predict(dtest, ntree_limit=ntree_lim)
+Output = np.asarray(Output)
+Label_Predict = np.asarray([np.round(line) for line in Output])
+#Label_Predict = pd.Series([np.round(line) for line in Output])
+print('best_preds',Label_Predict)
+test_labels = np.asarray([line for line in Te_Label])
+#test_labels = pd.Series([line for line in Te_Label])
+accuracy_test = accuracy_score(test_labels,Label_Predict)
+print('accuracy test', accuracy_test)
+
+def Plot_AMS(x,test_labels, Label_Predict, Te_KaggleWeight, Output):
+    
     AMS_values = np.zeros(np.size(x))
     i = 0
     while i < np.size(x):
@@ -446,4 +447,4 @@ def Plot_AMS(x):
     return
 
 Cut = np.linspace(0.5, 1, num=200)
-AMS_values = Plot_AMS(Cut)
+AMS_values = Plot_AMS(Cut, test_labels, Label_Predict, Te_KaggleWeight, Output)
