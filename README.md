@@ -19,7 +19,7 @@ Two different approaches were developed to classify the events.
 - A model based on three Deep Neural Networks.
 - A boosted decision tree provided by the Xgboost library.
 The performance of the two algorithms is evaluated by computing the Approximate Median Significance (AMS) score, which is defined as
- 	AMS $= \sqrt{2((s+b) \times ln(1+\frac{s}{b}) - s)}$ .
+ 	AMS $= \sqrt{2((s+b) ln(1 + \frac{s}{b}) - s)}$ .
  	
 ## External links
 Higgs Kaggle Challenge on [Kaggle platform](https://www.kaggle.com/c/higgs-boson).

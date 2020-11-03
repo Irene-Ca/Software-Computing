@@ -66,15 +66,14 @@ def get_data(datapath):
         print("Writing dataset on disk") 
         with open('data.csv', 'wb') as f:
             f.write(response.content)
-        datapath = "data.csv"
-    
-    # Reading dataset and creating pandas.DataFrame.
-    dataset = pd.read_csv(datapath,header=0)
-    print("Entries ", len(dataset))        
-    
-    return dataset
+        datapath = "data.csv" 
+    return datapath
+
 #df = get_data(path)
-df = get_data('atlas-higgs-challenge-2014-v2.csv')
+data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
+
+# Reading dataset and creating pandas.DataFrame.
+df = pd.read_csv(data_file,header=0)
 df.drop('EventId', axis=1, inplace=True)
 
 Epoch_Value = 40
