@@ -18,6 +18,8 @@ The goal of this project is to get an introduction to ML algorithms with the cla
 Two different approaches were developed to classify the events.
 - A model based on three Deep Neural Networks.
 - A boosted decision tree provided by the Xgboost library.
+
+
 The performance of the two algorithms is evaluated by computing the Approximate Median Significance (AMS) score, which is defined as
  	
  	![alt tag](https://github.com/IreneCa-gh/Software-Computing/blob/master/Images/AMSfunc.png)
