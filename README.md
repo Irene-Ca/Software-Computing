@@ -43,4 +43,4 @@ Open data: http://opendata.cern.ch/record/328
 The idea of developing a method that could be applied for the Higgs Boson Machine Learning Challenge was derived from the collaboration
 between the universities of Dortmund and of Bologna. In that preceding project we only worked on the algorithm based on the Neural Networks.
 Afterwards the original code have been reorganized (to improve the readability) and the classification has been a bit improved. 
-Moreove the BDT analysis have been added and the documentation have been written.
+Moreover the BDT analysis have been added and the documentation have been written.
