@@ -1,8 +1,6 @@
-import os
 import numpy as np
 import pandas as pd
 import requests
-from tensorflow import keras
 from keras.models import Sequential
 from keras.layers.core import Dense
 from sklearn.preprocessing import StandardScaler
@@ -13,7 +11,9 @@ pd.options.mode.chained_assignment = None
 
 seed = 12345
 np.random.seed(seed)
-path = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
+Epoch_Value = 40
+
+datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
 
 def get_data(datapath):
     '''
@@ -22,7 +22,7 @@ def get_data(datapath):
     Parameters
     ----------
     datapath : String
-        path of data in csv format.
+        path of data in csv format that should be downloaded.
 
     Raises
     ------
@@ -31,8 +31,8 @@ def get_data(datapath):
 
     Returns
     -------
-    dataset : pandas.dataframe
-        Dataframe containing data readed from CSV file.
+    datapath : String
+        path of data in csv format written on disk.
 
     '''
     if("http" in datapath):
@@ -50,23 +50,6 @@ def get_data(datapath):
             f.write(response.content)
         datapath = "data.csv" 
     return datapath
-
-#df = get_data(path)
-data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
-# Reading dataset and creating pandas.DataFrame.
-df = pd.read_csv(data_file,header=0)
-
-#EventId column is useless because pandas.dataframe has a default index 
-df.drop('EventId', axis=1, inplace=True)
-
-Epoch_Value = 40
-
-feature_list = df.columns.tolist()
-feature_list.remove('Weight')
-feature_list.remove('Label')
-feature_list.remove('KaggleSet')
-feature_list.remove('KaggleWeight')
-feature_list.remove('PRI_jet_num')
 
 def Adding_Feature_Category(df):
     '''
@@ -151,11 +134,6 @@ def Clean_Missing_Data(df):
         df[col].replace({np.nan : m}, inplace= True)
     return df
 
-df =  Clean_Missing_Data(df)
-
-#Adding Category Feature to data
-df = Adding_Feature_Category(df)
-df = df.sort_index(axis=0)
 
 def Label_to_Binary(Label):
     '''
@@ -177,12 +155,6 @@ def Label_to_Binary(Label):
     Label[Label == 's'] = 1
     return(Label)
 
-df['Label'] = Label_to_Binary(df['Label'])
-
-
-#StandardScaling
-scaler = StandardScaler()
-df[feature_list] = scaler.fit_transform(df[feature_list])
 
 def Train_Valid_Test(df):
     '''
@@ -266,22 +238,6 @@ def Separate_data_label(df):
     df.drop('KaggleWeight', axis=1 ,inplace=True)
     return df, Label, Weight, KaggleWeight
 
-TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
-
-TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
-ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
-TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
-
-
-TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
-TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
-TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
-ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
-ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
-ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
-TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
-TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
-TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
 
 def Clean_0_Jet(Train, Val, Test):
     '''
@@ -349,9 +305,6 @@ def Clean_1_Jet(Train, Val, Test):
     return Train, Val, Test
 
 
-TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
-TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
-
 def compiling_model(n_jet):
     '''
     Neural Network construction, compilation and saving.
@@ -383,16 +336,6 @@ def compiling_model(n_jet):
     model.add(Dense(units=1, activation='sigmoid'))
     model.compile(loss= 'binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
-
-    if n_jet == 0:
-        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-        model.save('KerasNN_Model0')
-    elif n_jet == 1:
-        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-        model.save('KerasNN_Model1')
-    elif n_jet == 2:
-        #model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-        model.save('KerasNN_Model2')
     return model
 
 def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
@@ -418,7 +361,7 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
 
     Returns
     -------
-    re_model : keras.engine.sequential.Sequential
+    model : keras.engine.sequential.Sequential
         Sequntial NN object trained on a specific subset, defined by n_jet.
     history : History.history
         Record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
@@ -430,22 +373,14 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
                                  mode='max',
                                  save_best_only=True,
                                  verbose=1)
-    re_model = compiling_model(n_jet)
+    model = compiling_model(n_jet)
     if n_jet == 0:
-        #re_model = keras.models.load_model('KerasNN_Model0')
-        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     elif n_jet == 1:
-        #re_model = keras.models.load_model('KerasNN_Model1')
-        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     elif n_jet ==2:
-        #re_model = keras.models.load_model('KerasNN_Model2')
-        history = re_model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-    return re_model, history
-
-
-model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
-model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
-model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    return model, history
 
 def plot_NN(n_jet, history, model):
     '''
@@ -613,7 +548,70 @@ def Plot_AMS_NN(x):
     plt.clf()
     return
 
+'''
+NEXT
+'''
+#df = get_data(datapath)
+data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
+# Reading dataset and creating pandas.DataFrame.
+df = pd.read_csv(data_file,header=0)
+
+#EventId column is useless because pandas.dataframe has a default index 
+df.drop('EventId', axis=1, inplace=True)
+
+feature_list = df.columns.tolist()
+feature_list.remove('Weight')
+feature_list.remove('Label')
+feature_list.remove('KaggleSet')
+feature_list.remove('KaggleWeight')
+feature_list.remove('PRI_jet_num')
+
+df =  Clean_Missing_Data(df)
+
+#Adding Category Feature to data
+df = Adding_Feature_Category(df)
+df = df.sort_index(axis=0)
+
+df['Label'] = Label_to_Binary(df['Label'])
+
+
+#StandardScaling
+scaler = StandardScaler()
+df[feature_list] = scaler.fit_transform(df[feature_list])
+
+TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+
+TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
+ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
+TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
+
+
+TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
+TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
+TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
+ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
+ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
+ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
+TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
+TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
+TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
+
+TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
+TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
+
+'''
+model.save('KerasNN_Model0')
+re_model = keras.models.load_model('KerasNN_Model0')
+model.save('KerasNN_Model1')
+re_model = keras.models.load_model('KerasNN_Model1')
+model.save('KerasNN_Model2')
+re_model = keras.models.load_model('KerasNN_Model2')
+'''
+
+model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
+model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
+model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+
+
 Cut = np.linspace(0.5, 1, num=200)
 AMS_values = Plot_AMS_NN(Cut)
-
-

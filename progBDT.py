@@ -1,37 +1,14 @@
-import os
 import numpy as np
 import pandas as pd
 import requests
-from pandas.plotting import scatter_matrix
-from sklearn.preprocessing.data import QuantileTransformer
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-from sklearn.utils import shuffle
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
-import keras.backend as K
 import matplotlib.pyplot as plt
-import seaborn as sns
-from xgboost.sklearn import XGBClassifier
-from sklearn import metrics
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import math_ops
-from keras.regularizers import l2
-from keras.regularizers import l1
-from keras.callbacks import ModelCheckpoint
 import xgboost as xgb
-from xgboost import plot_importance
-import graphviz
 pd.options.mode.chained_assignment = None
 
 seed = 12345
 np.random.seed(seed)
-path = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
+datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
 
 def get_data(datapath):
     '''
@@ -40,7 +17,7 @@ def get_data(datapath):
     Parameters
     ----------
     datapath : String
-        path of data in csv format.
+        path of data in csv format that should be downloaded.
 
     Raises
     ------
@@ -49,8 +26,8 @@ def get_data(datapath):
 
     Returns
     -------
-    dataset : pandas.dataframe
-        Dataframe containing data readed from CSV file.
+    datapath : String
+        path of data in csv format written on disk.
 
     '''
     if("http" in datapath):
@@ -68,22 +45,6 @@ def get_data(datapath):
             f.write(response.content)
         datapath = "data.csv" 
     return datapath
-
-#df = get_data(path)
-data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
-
-# Reading dataset and creating pandas.DataFrame.
-df = pd.read_csv(data_file,header=0)
-df.drop('EventId', axis=1, inplace=True)
-
-Epoch_Value = 40
-
-feature_list = df.columns.tolist()
-feature_list.remove('Weight')
-feature_list.remove('Label')
-feature_list.remove('KaggleSet')
-feature_list.remove('KaggleWeight')
-#feature_list.remove('PRI_jet_num')
 
 def Adding_Feature_Category(df):
     '''
@@ -147,13 +108,6 @@ def Adding_Feature_Category(df):
 
     return df
 
-#Adding Category Feature
-df = Adding_Feature_Category(df)
-df = df.sort_index(axis=0)
-#possospostarlo più giu?
-#df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
-
-
 def Label_to_Binary(Label):
     '''
     Encode target labels with value 0 for background and 1 for signal.
@@ -173,20 +127,6 @@ def Label_to_Binary(Label):
     Label[Label == 'b'] = 0
     Label[Label == 's'] = 1
     return(Label)
-
-df['Label'] = Label_to_Binary(df['Label'])
-
-'''
-#Scaling
-
-#MinMaxScaling
-#scaler = MinMaxScaler()
-
-#StandardScaling
-scaler = StandardScaler()
-df[feature_list] = scaler.fit_transform(df[feature_list])
-'''
-print('PRI_jet_num', df['PRI_jet_num'].dtype)
 
 def Train_Valid_Test(df):
     '''
@@ -244,18 +184,6 @@ def Separate_data_label(df):
     df.drop('KaggleSet', axis=1 ,inplace=True)
     df.drop('KaggleWeight', axis=1 ,inplace=True)
     return df, Label, Weight, KaggleWeight
-
-df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
-
-TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
-
-TrainingSet, Tr_Label, Tr_Weight, Tr_KaggleWeight = Separate_data_label(TrainingSet)
-ValidationSet, V_Label, V_Weight, V_KaggleWeight = Separate_data_label(ValidationSet)
-TestSet, Te_Label, Te_Weight, Te_KaggleWeight = Separate_data_label(TestSet)
-
-dtrain = xgb.DMatrix(data = TrainingSet, label = Tr_Label, weight = Tr_KaggleWeight, missing = -999.0)
-dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
-dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
 
 def cross_validation(seed):
     '''
@@ -324,20 +252,6 @@ def train_BDT():
     iteration = bst.best_iteration
     ntree_lim = bst.best_ntree_limit
     return score, iteration, ntree_lim, bst
-res = cross_validation(seed)
-print('CV results'"\n", res)
-
-
-score, iteration, ntree_lim,bst = train_BDT()
-#bst = xgb.Booster({'nthread': 4})  # init model
-#bst.load_model('BDT.model')  # load data
-
-'''
-It will give error because: 'Booster' object has no attribute 'best_score'
-xgboost.train() will return a model from the last iteration, not the best one
-I must find a way to save also early_stopping
-'''
-print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
 
 def plot_BDT(bst):
     '''
@@ -411,7 +325,7 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     Label_Predict_Cut = np.concatenate((Label_Predict[Output > Cut], Label_Predict[Output < (1-Cut)]))
     Label_Cut = pd.concat([Label_Cut, Label[Output < (1-Cut)]], ignore_index=True)
     KaggleWeight_Cut = pd.concat([KaggleWeight_Cut, KaggleWeight[Output < (1-Cut)]], ignore_index=True)
-    s = np.sum(KaggleWeight_Cut[Label_Predict_Cut & Label_Cut == 1])
+    s = np.sum(KaggleWeight_Cut[(Label_Predict_Cut == 1) & (Label_Cut == 1)])
     KaggleWeight_Cut = KaggleWeight_Cut[Label_Predict_Cut == 1]
     Label_Cut = Label_Cut[Label_Predict_Cut == 1]
     b = np.sum(KaggleWeight_Cut[Label_Cut == 0])
@@ -419,22 +333,22 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
 
 
-Output = bst.predict(dtest, ntree_limit=ntree_lim)
-Output = np.asarray(Output)
-Label_Predict = np.asarray([np.round(line) for line in Output])
-#Label_Predict = pd.Series([np.round(line) for line in Output])
-print('best_preds',Label_Predict)
-test_labels = np.asarray([line for line in Te_Label])
-#test_labels = pd.Series([line for line in Te_Label])
-accuracy_test = accuracy_score(test_labels,Label_Predict)
-print('accuracy test', accuracy_test)
 
-def Plot_AMS(x,test_labels, Label_Predict, Te_KaggleWeight, Output):
+
+def Plot_AMS(x):
+    
+    Output = bst.predict(dtest, ntree_limit=ntree_lim)
+    Output = np.asarray(Output)
+    Label_Predict = np.asarray([np.round(line) for line in Output])
+    print('best_preds',Label_Predict)
+    test_labels = np.asarray([line for line in Te_Label])
+    accuracy_test = accuracy_score(test_labels,Label_Predict)
+    print('accuracy test', accuracy_test)
     
     AMS_values = np.zeros(np.size(x))
     i = 0
     while i < np.size(x):
-        AMS_values[i] = AMS(2, x[i], test_labels, Label_Predict, Te_KaggleWeight, Output)
+        AMS_values[i] = AMS(2, x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
         i += 1
     MaxAMS = np.amax(AMS_values)
     print('Maximum AMS for TestSet:', MaxAMS)
@@ -445,5 +359,72 @@ def Plot_AMS(x,test_labels, Label_Predict, Te_KaggleWeight, Output):
     plt.clf()
     return
 
+'''
+NEXT
+'''
+
+#df = get_data(datapath)
+data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
+
+# Reading dataset and creating pandas.DataFrame.
+df = pd.read_csv(data_file,header=0)
+df.drop('EventId', axis=1, inplace=True)
+
+Epoch_Value = 40
+
+feature_list = df.columns.tolist()
+feature_list.remove('Weight')
+feature_list.remove('Label')
+feature_list.remove('KaggleSet')
+feature_list.remove('KaggleWeight')
+#feature_list.remove('PRI_jet_num')
+
+#Adding Category Feature
+df = Adding_Feature_Category(df)
+df = df.sort_index(axis=0)
+#possospostarlo più giu?
+#df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
+
+df['Label'] = Label_to_Binary(df['Label'])
+
+'''
+#Scaling
+
+#MinMaxScaling
+#scaler = MinMaxScaler()
+
+#StandardScaling
+scaler = StandardScaler()
+df[feature_list] = scaler.fit_transform(df[feature_list])
+'''
+print('PRI_jet_num', df['PRI_jet_num'].dtype)
+
+df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
+
+TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+
+TrainingSet, Tr_Label, Tr_Weight, Tr_KaggleWeight = Separate_data_label(TrainingSet)
+ValidationSet, V_Label, V_Weight, V_KaggleWeight = Separate_data_label(ValidationSet)
+TestSet, Te_Label, Te_Weight, Te_KaggleWeight = Separate_data_label(TestSet)
+
+dtrain = xgb.DMatrix(data = TrainingSet, label = Tr_Label, weight = Tr_KaggleWeight, missing = -999.0)
+dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
+dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
+
+#res = cross_validation(seed)
+#print('CV results'"\n", res)
+
+
+score, iteration, ntree_lim,bst = train_BDT()
+#bst = xgb.Booster({'nthread': 4})  # init model
+#bst.load_model('BDT.model')  # load data
+
+'''
+It will give error because: 'Booster' object has no attribute 'best_score'
+xgboost.train() will return a model from the last iteration, not the best one
+I must find a way to save also early_stopping
+'''
+print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
+
 Cut = np.linspace(0.5, 1, num=200)
-AMS_values = Plot_AMS(Cut, test_labels, Label_Predict, Te_KaggleWeight, Output)
+AMS_values = Plot_AMS(Cut)
