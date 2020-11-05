@@ -126,13 +126,21 @@ def Clean_Missing_Data(df):
     -------
     df : pandas.dataframe
         Dataframe with mean values in place of the missing data values.
+    feature_list : list
+        list of column names that contain missing values.
 
     '''
+    feature_list = df.columns.tolist()
+    feature_list.remove('Weight')
+    feature_list.remove('Label')
+    feature_list.remove('KaggleSet')
+    feature_list.remove('KaggleWeight')
+    feature_list.remove('PRI_jet_num')    
     for col in feature_list:
         df[col].replace({-999 : np.nan}, inplace= True)
         m = df[col].mean()
         df[col].replace({np.nan : m}, inplace= True)
-    return df
+    return df, feature_list
 
 
 def Label_to_Binary(Label):
@@ -317,7 +325,8 @@ def compiling_model(n_jet):
 
     Returns
     -------
-    None.
+    model : keras.engine.sequential.Sequential
+        Sequntial NN object trained on a specific subset, defined by n_jet.
     
     '''
     model = Sequential()
@@ -382,7 +391,8 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
         history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     return model, history
 
-def plot_NN(n_jet, history, model):
+    
+def plot_NN(n_jet, history, model, TestSet, Te_Label):
     '''
     Produces three different plots:
         a) loss function evaluated at each epoch for the training and the validation set
@@ -397,6 +407,10 @@ def plot_NN(n_jet, history, model):
         Record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
     model : keras.engine.sequential.Sequential
         Sequntial NN object trained on a specific subset, defined by n_jet.
+    TestSet : pandas.dataframe
+        events used for test.        
+    Te_Label : pandas.dataframe
+        labels corresponding to test data.
 
     Returns
     -------
@@ -444,21 +458,56 @@ def plot_NN(n_jet, history, model):
     plt.ylabel('Counts')
     plt.yscale('log')
     plt.legend()
-    if n_jet == 0:
-        DNN_Output0 = model.predict(TestSet0)[:,0]
-        plt.hist([DNN_Output0[Te_Label0==0], DNN_Output0[Te_Label0==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
-    elif n_jet == 1:
-        DNN_Output1 = model.predict(TestSet1)[:,0]
-        plt.hist([DNN_Output1[Te_Label1==0], DNN_Output1[Te_Label1==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
-    elif n_jet == 2:
-        DNN_Output2 = model.predict(TestSet2)[:,0]
-        plt.hist([DNN_Output2[Te_Label2==0], DNN_Output2[Te_Label2==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
+    
+    DNN_Output = model.predict(TestSet)[:,0]
+    plt.hist([DNN_Output[Te_Label==0], DNN_Output[Te_Label==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
     plt.savefig(output_name_fig)
     plt.clf()
+
+def Predict (model0, model1, model2, TestSet0, TestSet1, TestSet2):
+    '''
+    Function to compute the inferences and the class inferences of the three NN combined together.
+
+    Parameters
+    ----------
+    model0 : keras.engine.sequential.Sequential
+        Sequntial NN object trained on the subset with zero jets events.
+    model1 : keras.engine.sequential.Sequential
+        Sequntial NN object trained on the subset with one jet events.
+    model2 : keras.engine.sequential.Sequential
+        Sequntial NN object trained on the subset with two jets events.
+    TestSet0 : pandas.dataframe
+        events to test the NN trained on zero jets data.
+    TestSet1 : pandas.dataframe
+        events to test the NN trained on one jet data.
+    TestSet2 : pandas.dataframe
+        events to test the NN trained on two jets data.
+
+    Returns
+    -------
+    Output : numpy.array
+        inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
+    Label_Predict : numpy.array
+        class inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
+
+    '''
+    DNN_Output0 = model0.predict(TestSet0)[:,0]
+    DNN_Output1 = model1.predict(TestSet1)[:,0]
+    DNN_Output2 = model2.predict(TestSet2)[:,0]
     
+    Label_Predict0 = model0.predict_classes(TestSet0)[:,0]
+    Label_Predict1 = model1.predict_classes(TestSet1)[:,0]
+    Label_Predict2 = model2.predict_classes(TestSet2)[:,0]
+    
+    Output = np.concatenate((DNN_Output0, DNN_Output1, DNN_Output2))
+    Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
+    return Output, Label_Predict
+
+
 
 def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
-
     '''
     Function to compute the Approximate Median Significance(AMS) of the total classificator.
 
@@ -487,7 +536,7 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     Returns
     -------
     float
-        Value of the AMS function.
+        Value of the AMS function, for a specific value of Cut.
 
     '''
     
@@ -506,7 +555,7 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
 
 
-def Plot_AMS_NN(x):
+def Plot_AMS_NN(x ,Te_Label, Label_Predict, Te_KaggleWeight, Output):
     '''
     Computes and plots the AMS value for different values of the Cut variable.
     The maximum AMS score is printed.
@@ -521,18 +570,6 @@ def Plot_AMS_NN(x):
     None.
 
     '''
-    DNN_Output0 = model0.predict(TestSet0)[:,0]
-    DNN_Output1 = model1.predict(TestSet1)[:,0]
-    DNN_Output2 = model2.predict(TestSet2)[:,0]
-    
-    Label_Predict0 = model0.predict_classes(TestSet0)[:,0]
-    Label_Predict1 = model1.predict_classes(TestSet1)[:,0]
-    Label_Predict2 = model2.predict_classes(TestSet2)[:,0]
-
-    Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
-    Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
-    Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
-    Output = np.concatenate((DNN_Output0, DNN_Output1, DNN_Output2))
 
     AMS_values = np.zeros(np.size(x))
     i = 0
@@ -541,77 +578,102 @@ def Plot_AMS_NN(x):
         i += 1
     MaxAMS = np.amax(AMS_values)
     print('Maximum AMS for TestSet:', MaxAMS)
-    plt.plot(Cut, AMS_values)
+    plt.plot(x, AMS_values)
     plt.xlabel('Cut')
     plt.ylabel('AMS Score')
     plt.savefig('AMS_Score.pdf')
     plt.clf()
-    return
 
-'''
-NEXT
-'''
-#df = get_data(datapath)
-data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
-# Reading dataset and creating pandas.DataFrame.
-df = pd.read_csv(data_file,header=0)
+def play(args):
+    '''
+    
 
-#EventId column is useless because pandas.dataframe has a default index 
-df.drop('EventId', axis=1, inplace=True)
+    Parameters
+    ----------
+    args : TYPE
+        DESCRIPTION.
 
-feature_list = df.columns.tolist()
-feature_list.remove('Weight')
-feature_list.remove('Label')
-feature_list.remove('KaggleSet')
-feature_list.remove('KaggleWeight')
-feature_list.remove('PRI_jet_num')
+    Returns
+    -------
+    None.
 
-df =  Clean_Missing_Data(df)
-
-#Adding Category Feature to data
-df = Adding_Feature_Category(df)
-df = df.sort_index(axis=0)
-
-df['Label'] = Label_to_Binary(df['Label'])
-
-
-#StandardScaling
-scaler = StandardScaler()
-df[feature_list] = scaler.fit_transform(df[feature_list])
-
-TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
-
-TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
-ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
-TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
+    '''
+    
+    data_file = get_data(datapath)
+    #data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
+    
+    # Reading dataset and creating pandas.DataFrame.
+    df = pd.read_csv(data_file,header=0)
+    
+    #EventId column is useless because pandas.dataframe has a default index 
+    df.drop('EventId', axis=1, inplace=True)
+    
+    df, feature_list =  Clean_Missing_Data(df)
+    
+    #Feature engeneering: adding Category Feature to data
+    df = Adding_Feature_Category(df)
+    df = df.sort_index(axis=0)
+    
+    #Label Encoding
+    df['Label'] = Label_to_Binary(df['Label'])
 
 
-TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
-TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
-TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
-ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
-ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
-ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
-TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
-TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
-TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
+    #Scaling of features that could span wide ranges
+    scaler = StandardScaler()
+    feature_list = df.columns.tolist()
+    feature_list.remove('Weight')
+    feature_list.remove('Label')
+    feature_list.remove('KaggleSet')
+    feature_list.remove('KaggleWeight')
+    feature_list.remove('PRI_jet_num')
+    df[feature_list] = scaler.fit_transform(df[feature_list])
+    
+    #Splitting into trainig, validation, test sets
+    TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+    
+    #Splitting the sets with respect to the value of PRI_jet_num' variable
+    TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
+    ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
+    TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
+    
 
-TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
-TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
-
-'''
-model.save('KerasNN_Model0')
-re_model = keras.models.load_model('KerasNN_Model0')
-model.save('KerasNN_Model1')
-re_model = keras.models.load_model('KerasNN_Model1')
-model.save('KerasNN_Model2')
-re_model = keras.models.load_model('KerasNN_Model2')
-'''
-
-model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
-model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
-model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
-
-
-Cut = np.linspace(0.5, 1, num=200)
-AMS_values = Plot_AMS_NN(Cut)
+    TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
+    TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
+    TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
+    ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
+    ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
+    ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
+    TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
+    TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
+    TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
+    
+    #Removal of meaningless features
+    TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
+    TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
+    
+    '''
+    model.save('KerasNN_Model0')
+    re_model = keras.models.load_model('KerasNN_Model0')
+    model.save('KerasNN_Model1')
+    re_model = keras.models.load_model('KerasNN_Model1')
+    model.save('KerasNN_Model2')
+    re_model = keras.models.load_model('KerasNN_Model2')
+    '''
+    
+    #training of the three NN
+    model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
+    model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
+    model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+    
+    #Predictions, plotting and AMS computation
+    Output ,Label_Predict = Predict(model0, model1, model2, TestSet0, TestSet1, TestSet2)
+    Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
+    Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
+    
+    plot_NN(0, history0, model0, TestSet0, Te_Label0)
+    plot_NN(1, history1, model1, TestSet1, Te_Label1)
+    plot_NN(2, history2, model2, TestSet2, Te_Label2)
+    
+    Cut = np.linspace(0.5, 1, num=200)
+    AMS_values = Plot_AMS_NN(Cut, Te_Label, Label_Predict, Te_KaggleWeight, Output)
+    

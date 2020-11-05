@@ -8,6 +8,7 @@ pd.options.mode.chained_assignment = None
 
 seed = 12345
 np.random.seed(seed)
+Epoch_Value = 40
 datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
 
 def get_data(datapath):
@@ -185,7 +186,7 @@ def Separate_data_label(df):
     df.drop('KaggleWeight', axis=1 ,inplace=True)
     return df, Label, Weight, KaggleWeight
 
-def cross_validation(seed):
+def cross_validation(seed, dtrain):
     '''
     function to perform cross validation before training.
 
@@ -215,7 +216,7 @@ def cross_validation(seed):
     res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 999, seed = seed, early_stopping_rounds=25)
     return res
 
-def train_BDT():
+def train_BDT(dvalid, dtrain):
     '''
     Trains a BDT with given parameters, values founded using cross validation.
 
@@ -244,7 +245,7 @@ def train_BDT():
               'nthread' : 16}
     evallist = [(dvalid, 'eval'), (dtrain, 'train')]
     #training
-    num_round = 3000
+    num_round = 2000
     bst = xgb.train(params, dtrain, num_round , evals = evallist, early_stopping_rounds=25)
     bst.save_model('BDT.model')
     #print('best_score ', bst.best_score, "\n" 'best_iteration ', bst.best_iteration, "\n" 'best_ntree_limit ', bst.best_ntree_limit)
@@ -335,7 +336,7 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
 
 
 
-def Plot_AMS(x):
+def Plot_AMS(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     
     Output = bst.predict(dtest, ntree_limit=ntree_lim)
     Output = np.asarray(Output)
@@ -352,79 +353,53 @@ def Plot_AMS(x):
         i += 1
     MaxAMS = np.amax(AMS_values)
     print('Maximum AMS for TestSet:', MaxAMS)
-    plt.plot(Cut, AMS_values)
+    plt.plot(x, AMS_values)
     plt.xlabel('Cut')
     plt.ylabel('AMS Score')
     plt.savefig('AMS_Score.pdf')
     plt.clf()
     return
 
-'''
-NEXT
-'''
+def play(args):
+    #df = get_data(datapath)
+    data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
 
-#df = get_data(datapath)
-data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
+    # Reading dataset and creating pandas.DataFrame.
+    df = pd.read_csv(data_file,header=0)
+    df.drop('EventId', axis=1, inplace=True)
+    
+    #Adding Category Feature
+    df = Adding_Feature_Category(df)
+    df = df.sort_index(axis=0)
+    #possospostarlo più giu?
+    #df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
+    
+    df['Label'] = Label_to_Binary(df['Label'])
+    #print('PRI_jet_num', df['PRI_jet_num'].dtype)
+    
+    df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
+    
+    TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+    
+    TrainingSet, Tr_Label, Tr_Weight, Tr_KaggleWeight = Separate_data_label(TrainingSet)
+    ValidationSet, V_Label, V_Weight, V_KaggleWeight = Separate_data_label(ValidationSet)
+    TestSet, Te_Label, Te_Weight, Te_KaggleWeight = Separate_data_label(TestSet)
+    
+    dtrain = xgb.DMatrix(data = TrainingSet, label = Tr_Label, weight = Tr_KaggleWeight, missing = -999.0)
+    dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
+    dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
+    
+    #Cross Validation
+    #res = cross_validation(seed, dtrain)
+    #print('CV results'"\n", res)
+    
+    
+    score, iteration, ntree_lim, bst = train_BDT(dvalid, dtrain)
+    #bst = xgb.Booster({'nthread': 4})  # init model
+    #bst.load_model('BDT.model')  # load data
 
-# Reading dataset and creating pandas.DataFrame.
-df = pd.read_csv(data_file,header=0)
-df.drop('EventId', axis=1, inplace=True)
-
-Epoch_Value = 40
-
-feature_list = df.columns.tolist()
-feature_list.remove('Weight')
-feature_list.remove('Label')
-feature_list.remove('KaggleSet')
-feature_list.remove('KaggleWeight')
-#feature_list.remove('PRI_jet_num')
-
-#Adding Category Feature
-df = Adding_Feature_Category(df)
-df = df.sort_index(axis=0)
-#possospostarlo più giu?
-#df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
-
-df['Label'] = Label_to_Binary(df['Label'])
-
-'''
-#Scaling
-
-#MinMaxScaling
-#scaler = MinMaxScaler()
-
-#StandardScaling
-scaler = StandardScaler()
-df[feature_list] = scaler.fit_transform(df[feature_list])
-'''
-print('PRI_jet_num', df['PRI_jet_num'].dtype)
-
-df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
-
-TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
-
-TrainingSet, Tr_Label, Tr_Weight, Tr_KaggleWeight = Separate_data_label(TrainingSet)
-ValidationSet, V_Label, V_Weight, V_KaggleWeight = Separate_data_label(ValidationSet)
-TestSet, Te_Label, Te_Weight, Te_KaggleWeight = Separate_data_label(TestSet)
-
-dtrain = xgb.DMatrix(data = TrainingSet, label = Tr_Label, weight = Tr_KaggleWeight, missing = -999.0)
-dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
-dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
-
-#res = cross_validation(seed)
-#print('CV results'"\n", res)
-
-
-score, iteration, ntree_lim,bst = train_BDT()
-#bst = xgb.Booster({'nthread': 4})  # init model
-#bst.load_model('BDT.model')  # load data
-
-'''
-It will give error because: 'Booster' object has no attribute 'best_score'
-xgboost.train() will return a model from the last iteration, not the best one
-I must find a way to save also early_stopping
-'''
-print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
-
-Cut = np.linspace(0.5, 1, num=200)
-AMS_values = Plot_AMS(Cut)
+    print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
+    
+    Cut = np.linspace(0.5, 1, num=200)
+    AMS_values = Plot_AMS(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
+    
