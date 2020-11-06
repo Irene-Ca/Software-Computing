@@ -27,28 +27,13 @@ The performance of the two algorithms is evaluated by computing the Approximate 
  	
 ![alt tag](https://github.com/IreneCa-gh/Software-Computing/blob/master/Images/AMSfunc.png)
  	
-## External links
-Higgs Kaggle Challenge on [Kaggle platform](https://www.kaggle.com/c/higgs-boson).
-
-Open data: http://opendata.cern.ch/record/328
-
-
-## Software and libraries required
-- Python 3
-- numpy
-- pandas
-- Scikit-learn: Python’s open source machine learning library
-- matplotlib
-- Keras
-- XGBoost
-- requests
-
-
 ## Notes
 - **Splitting into training set, validation set and test set:** 
 this splitting was done by looking the KaggleSet variable, which allows to recover the original Kaggle training, public and private data sets provided for the challenge. 
 In this way it has been guaranteed that the three subsets would have been good representatives of the data set as a whole.
-The training set has 250000 events, the validation set has 100000 events and the test set has 450000 events.
+    - The training set has 250000 events, 
+    - the validation set has 100000 events 
+    - the test set has 450000 events.
 
 - **Category feature:**
 a new feature, called "Category", is added to the data set before the training of the algorithms. It has been added to improve the classification and also to let the models to learn faster and easier. 
@@ -56,6 +41,7 @@ The events are distinguished into two analysis categories: the boosted and the V
     - 2 for the boosted category,
     - 1 for the VBF category,
     - 0 for those events that do not belong to a defined category.
+
 The requirements applied to determine the Category value for each event are the same that
 were used by [The ATLAS collaboration](https://link.springer.com/article/10.1007/JHEP04(2015)117) for the event selection and are summarized in the following table
 
@@ -74,7 +60,7 @@ pT2 is the transverse momentum of the subleading jet with the second largest tra
 Mvis_ττ is the invariant mass of the visible tau decay products.
 pT_H is the transverse momentum of the Higgs boson candidate.
 
-- **Splitting with respect to the number of jets (NN):**
+- **Splitting with respect to the number of jets (only NN):**
 the data set has been split into events with zero jets, events with one jet and events with two or more jets.
 In this way, three different NN have been trained, one for each subset.
 In general only one NN is enough if it is trained on all the training data. 
@@ -87,3 +73,18 @@ Using this strategy it has been observed that a three NN classifier has a better
 between the universities of Dortmund and of Bologna. In that preceding project we only worked on the algorithm based on the Neural Networks.
 Afterwards the original code have been reorganized (to improve the readability) and the classification has been a bit improved. 
 Moreover the BDT analysis have been added and the documentation have been written.
+
+## External links
+Higgs Kaggle Challenge on [Kaggle platform](https://www.kaggle.com/c/higgs-boson).
+
+Open data: http://opendata.cern.ch/record/328
+
+## Software and libraries required
+- Python 3
+- numpy
+- pandas
+- Scikit-learn: Python’s open source machine learning library
+- matplotlib
+- Keras
+- XGBoost
+- requests
