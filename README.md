@@ -44,8 +44,46 @@ Open data: http://opendata.cern.ch/record/328
 - requests
 
 
-## Note
-The idea of developing a method that could be applied for the Higgs Boson Machine Learning Challenge was derived from the collaboration
+## Notes
+- **Splitting into training set, validation set and test set:** 
+this splitting was done by looking the KaggleSet variable, which allows to recover the original Kaggle training, public and private data sets provided for the challenge. 
+In this way it has been guaranteed that the three subsets would have been good representatives of the data set as a whole.
+The training set has 250000 events, the validation set has 100000 events and the test set has 450000 events.
+
+- **Category feature:**
+a new feature, called "Category", is added to the data set before the training of the algorithms. It has been added to improve the classification and also to let the models to learn faster and easier. 
+The events are distinguished into two analysis categories: the boosted and the VBF category. So this new feature can assume three possible values: 
+    - 2 for the boosted category,
+    - 1 for the VBF category,
+    - 0 for those events that do not belong to a defined category.
+The requirements applied to determine the Category value for each event are the same that
+were used by [The ATLAS collaboration](https://link.springer.com/article/10.1007/JHEP04(2015)117) for the event selection and are summarized in the following table
+
+
+| Category  | Selection criteria |
+| --------- | ------------------ |
+|   VBF     | At least two jets with pT1 > 50 GeV and pT2 > 30 GeV |
+|           | ∆η(j 1 , j 2 ) > 3.0 |
+|           | Mvis _ττ > 40 GeV |
+| Boosted   | Failing the VBF selection |
+|           | pT_H > 100 GeV |
+
+pT1 is the transverse momentum of the leading jet with the largest transverse momentum. 
+pT2 is the transverse momentum of the subleading jet with the second largest transverse momentum. 
+∆η(j 1 , j 2 ) is the absolute value of the pseudorapidity separation between the two jets. 
+Mvis_ττ is the invariant mass of the visible tau decay products.
+pT_H is the transverse momentum of the Higgs boson candidate.
+
+- **Splitting with respect to the number of jets (NN):**
+the data set has been split into events with zero jets, events with one jet and events with two or more jets.
+In this way, three different NN have been trained, one for each subset.
+In general only one NN is enough if it is trained on all the training data. 
+The NN should be able to learn to generalize the data. 
+Consequently splitting the data sample into three subsets and then train three separated NN would have a worse performance.
+It is possible that the limited data set could affect the performance of only one NN classifier. 
+Using this strategy it has been observed that a three NN classifier has a better performance than only one NN on the whole data set.
+
+- The idea of developing a method that could be applied for the Higgs Boson Machine Learning Challenge was derived from the collaboration
 between the universities of Dortmund and of Bologna. In that preceding project we only worked on the algorithm based on the Neural Networks.
 Afterwards the original code have been reorganized (to improve the readability) and the classification has been a bit improved. 
 Moreover the BDT analysis have been added and the documentation have been written.
