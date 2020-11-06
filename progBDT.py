@@ -336,7 +336,7 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
 
 
 
-def Plot_AMS(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
+def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     
     Output = bst.predict(dtest, ntree_limit=ntree_lim)
     Output = np.asarray(Output)
@@ -361,11 +361,12 @@ def Plot_AMS(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     return
 
 def play(args):
-    #df = get_data(datapath)
+    #data_file = get_data(datapath)
     data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
 
     # Reading dataset and creating pandas.DataFrame.
     df = pd.read_csv(data_file,header=0)
+    #EventId column is useless because pandas.dataframe has a default index 
     df.drop('EventId', axis=1, inplace=True)
     
     #Adding Category Feature
@@ -401,5 +402,5 @@ def play(args):
     print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
     
     Cut = np.linspace(0.5, 1, num=200)
-    AMS_values = Plot_AMS(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
+    AMS_values = Plot_AMS_BDT(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
     

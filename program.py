@@ -7,6 +7,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
+from sklearn.metrics import accuracy_score
+import xgboost as xgb
 pd.options.mode.chained_assignment = None
 
 seed = 12345
@@ -464,7 +466,7 @@ def plot_NN(n_jet, history, model, TestSet, Te_Label):
     plt.savefig(output_name_fig)
     plt.clf()
 
-def Predict (model0, model1, model2, TestSet0, TestSet1, TestSet2):
+def Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2):
     '''
     Function to compute the inferences and the class inferences of the three NN combined together.
 
@@ -505,8 +507,107 @@ def Predict (model0, model1, model2, TestSet0, TestSet1, TestSet2):
     Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
     return Output, Label_Predict
 
+# BDT functions
+def cross_validation(seed, dtrain):
+    '''
+    function to perform cross validation before training.
+
+    Parameters
+    ----------
+    seed : Int
+        Random seed. It's important to properly compare the scores with different parameters.
+
+    Returns
+    -------
+    res : list(string)
+        Evaluation history.
+
+    '''
+    # Parameters to tune with cross validation
+    CVparams = {'objective' : 'binary:logistic',
+                'bst:max_depth' : 9,
+                'min_child_weight' : 7, 
+                'gamma' : 0, 
+                'sub_sample' : 0.5,
+                'colsample_bytree' : 0.5, 
+                'bst:eta' : 0.1,
+                'eval_metric' : ['ams@0.15', 'auc'],
+                'silent' : 1,
+                'nthread' : 16}
+        
+    res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 999, seed = seed, early_stopping_rounds=25)
+    return res
+
+def train_BDT(dvalid, dtrain):
+    '''
+    Trains a BDT with given parameters, values founded using cross validation.
+
+    Returns
+    -------
+    score : Int
+        evaluation score at the best iteration.
+    iteration : Int
+        at which boosting iteration the best score has occurred.
+    ntree_lim : Int
+        variable used to get predictions from the best iteration during BDT training.
+
+    '''
+    #These are the parameters used by the train method of xgb
+    # so they have been already updated to their best values
+    #founded with hyperparameters tuning with cross validation
+    params = {'objective' : 'binary:logistic',
+              'bst:max_depth' : 9,
+              'min_child_weight' : 7, 
+              'gamma' : 0, 
+              'sub_sample' : 0.9,
+              'colsample_bytree' : 0.9, 
+              'bst:eta' : 0.1,
+              'eval_metric' : ['ams@0.15', 'auc'],
+              'silent' : 1,
+              'nthread' : 16}
+    evallist = [(dvalid, 'eval'), (dtrain, 'train')]
+    #training
+    num_round = 2000
+    bst = xgb.train(params, dtrain, num_round , evals = evallist, early_stopping_rounds=25)
+    bst.save_model('BDT.model')
+    #print('best_score ', bst.best_score, "\n" 'best_iteration ', bst.best_iteration, "\n" 'best_ntree_limit ', bst.best_ntree_limit)
+    score = bst.best_score
+    iteration = bst.best_iteration
+    ntree_lim = bst.best_ntree_limit
+    return score, iteration, ntree_lim, bst
+
+def plot_BDT(bst):
+    '''
+    Produces two different plots:
+        a) Plot specified tree
+        b) Plot importance based on fitted trees.
+
+    Parameters
+    ----------
+    bst : XGBModel
+        XGBModel instance.
+
+    Returns
+    -------
+    None.
+
+    '''
+    xgb.plot_tree(bst, num_trees=4)
+    fig = plt.gcf()
+    fig.set_size_inches(150, 100)
+    fig.savefig('plotTreeHiggs.pdf')
+    plt.clf()
+    plt.show()
+
+    xgb.plot_importance(bst)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    fig.savefig('plotImportanceHiggs.pdf') 
+    plt.clf()
+    plt.show()
 
 
+#Plotting AMS
 def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     '''
     Function to compute the Approximate Median Significance(AMS) of the total classificator.
@@ -583,6 +684,30 @@ def Plot_AMS_NN(x ,Te_Label, Label_Predict, Te_KaggleWeight, Output):
     plt.ylabel('AMS Score')
     plt.savefig('AMS_Score.pdf')
     plt.clf()
+    
+def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
+    
+    Output = bst.predict(dtest, ntree_limit=ntree_lim)
+    Output = np.asarray(Output)
+    Label_Predict = np.asarray([np.round(line) for line in Output])
+    print('best_preds',Label_Predict)
+    test_labels = np.asarray([line for line in Te_Label])
+    accuracy_test = accuracy_score(test_labels,Label_Predict)
+    print('accuracy test', accuracy_test)
+    
+    AMS_values = np.zeros(np.size(x))
+    i = 0
+    while i < np.size(x):
+        AMS_values[i] = AMS(2, x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
+        i += 1
+    MaxAMS = np.amax(AMS_values)
+    print('Maximum AMS for TestSet:', MaxAMS)
+    plt.plot(x, AMS_values)
+    plt.xlabel('Cut')
+    plt.ylabel('AMS Score')
+    plt.savefig('AMS_Score.pdf')
+    plt.clf()
+    return
 
 def play(args):
     '''
@@ -620,12 +745,6 @@ def play(args):
 
     #Scaling of features that could span wide ranges
     scaler = StandardScaler()
-    feature_list = df.columns.tolist()
-    feature_list.remove('Weight')
-    feature_list.remove('Label')
-    feature_list.remove('KaggleSet')
-    feature_list.remove('KaggleWeight')
-    feature_list.remove('PRI_jet_num')
     df[feature_list] = scaler.fit_transform(df[feature_list])
     
     #Splitting into trainig, validation, test sets
@@ -666,7 +785,7 @@ def play(args):
     model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
     
     #Predictions, plotting and AMS computation
-    Output ,Label_Predict = Predict(model0, model1, model2, TestSet0, TestSet1, TestSet2)
+    Output ,Label_Predict = Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2)
     Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
     Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
     
