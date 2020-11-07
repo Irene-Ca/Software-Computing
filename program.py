@@ -9,6 +9,7 @@ from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
+import argparse
 pd.options.mode.chained_assignment = None
 
 seed = 12345
@@ -709,21 +710,8 @@ def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     plt.clf()
     return
 
-def play(args):
-    '''
-    
+def play(Model, datapath):
 
-    Parameters
-    ----------
-    args : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
-
-    '''
-    
     data_file = get_data(datapath)
     #data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
     
@@ -733,66 +721,106 @@ def play(args):
     #EventId column is useless because pandas.dataframe has a default index 
     df.drop('EventId', axis=1, inplace=True)
     
-    df, feature_list =  Clean_Missing_Data(df)
-    
     #Feature engeneering: adding Category Feature to data
     df = Adding_Feature_Category(df)
     df = df.sort_index(axis=0)
     
     #Label Encoding
     df['Label'] = Label_to_Binary(df['Label'])
+    
+    if (Model == 'NN'):
+        df, feature_list =  Clean_Missing_Data(df)
+        #Scaling of features that could span wide ranges
+        scaler = StandardScaler()
+        df[feature_list] = scaler.fit_transform(df[feature_list])
+    
+        #Splitting into trainig, validation, test sets
+        TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+    
+        #Splitting the sets with respect to the value of PRI_jet_num' variable
+        TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
+        ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
+        TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
+        
+        
+        TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
+        TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
+        TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
+        ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
+        ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
+        ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
+        TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
+        TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
+        TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
+    
+        #Removal of meaningless features
+        TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
+        TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
+        
+        '''
+        model.save('KerasNN_Model0')
+        re_model = keras.models.load_model('KerasNN_Model0')
+        model.save('KerasNN_Model1')
+        re_model = keras.models.load_model('KerasNN_Model1')
+        model.save('KerasNN_Model2')
+        re_model = keras.models.load_model('KerasNN_Model2')
+        '''
+        
+        #training of the three NN
+        model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
+        model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
+        model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+        
+        #Predictions, plotting and AMS computation
+        Output ,Label_Predict = Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2)
+        Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
+        Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
+        
+        plot_NN(0, history0, model0, TestSet0, Te_Label0)
+        plot_NN(1, history1, model1, TestSet1, Te_Label1)
+        plot_NN(2, history2, model2, TestSet2, Te_Label2)
+        
+        Cut = np.linspace(0.5, 1, num=200)
+        AMS_values = Plot_AMS_NN(Cut, Te_Label, Label_Predict, Te_KaggleWeight, Output)
+   
+    elif (Model == 'BDT'):
+        df['PRI_jet_num'] = df['PRI_jet_num'].astype(str).astype(int)
+    
+        TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
+        
+        TrainingSet, Tr_Label, Tr_Weight, Tr_KaggleWeight = Separate_data_label(TrainingSet)
+        ValidationSet, V_Label, V_Weight, V_KaggleWeight = Separate_data_label(ValidationSet)
+        TestSet, Te_Label, Te_Weight, Te_KaggleWeight = Separate_data_label(TestSet)
+        
+        dtrain = xgb.DMatrix(data = TrainingSet, label = Tr_Label, weight = Tr_KaggleWeight, missing = -999.0)
+        dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
+        dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
+        
+        #Cross Validation
+        #res = cross_validation(seed, dtrain)
+        #print('CV results'"\n", res)
+        
+        
+        score, iteration, ntree_lim, bst = train_BDT(dvalid, dtrain)
+        #bst = xgb.Booster({'nthread': 4})  # init model
+        #bst.load_model('BDT.model')  # load data
 
+        print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
+    
+        Cut = np.linspace(0.5, 1, num=200)
+        AMS_values = Plot_AMS_BDT(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
 
-    #Scaling of features that could span wide ranges
-    scaler = StandardScaler()
-    df[feature_list] = scaler.fit_transform(df[feature_list])
-    
-    #Splitting into trainig, validation, test sets
-    TrainingSet, ValidationSet, TestSet, Unused = Train_Valid_Test(df)
-    
-    #Splitting the sets with respect to the value of PRI_jet_num' variable
-    TrainingSet0, TrainingSet1, TrainingSet2 = Split_Jets(TrainingSet)
-    ValidationSet0, ValidationSet1, ValidationSet2 = Split_Jets(ValidationSet)
-    TestSet0, TestSet1, TestSet2 = Split_Jets(TestSet)
-    
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--model", default= "NN", choices = ["NN", "BDT"], help="Choose the model you want to use")
+    parser.add_argument("-p", "--datapath", default= datapath, help="data path of csv file")
+    try:
+        parser.parse_args()
+        options = parser.parse_args()
 
-    TrainingSet0, Tr_Label0, Tr_Weight0, Tr_KaggleWeight0 = Separate_data_label(TrainingSet0)
-    TrainingSet1, Tr_Label1, Tr_Weight1, Tr_KaggleWeight1 = Separate_data_label(TrainingSet1)
-    TrainingSet2, Tr_Label2, Tr_Weight2, Tr_KaggleWeight2 = Separate_data_label(TrainingSet2)
-    ValidationSet0, V_Label0, V_Weight0, V_KaggleWeight0 = Separate_data_label(ValidationSet0)
-    ValidationSet1, V_Label1, V_Weight1, V_KaggleWeight1 = Separate_data_label(ValidationSet1)
-    ValidationSet2, V_Label2, V_Weight2, V_KaggleWeight2 = Separate_data_label(ValidationSet2)
-    TestSet0, Te_Label0, Te_Weight0, Te_KaggleWeight0 = Separate_data_label(TestSet0)
-    TestSet1, Te_Label1, Te_Weight1, Te_KaggleWeight1 = Separate_data_label(TestSet1)
-    TestSet2, Te_Label2, Te_Weight2, Te_KaggleWeight2 = Separate_data_label(TestSet2)
-    
-    #Removal of meaningless features
-    TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
-    TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
-    
-    '''
-    model.save('KerasNN_Model0')
-    re_model = keras.models.load_model('KerasNN_Model0')
-    model.save('KerasNN_Model1')
-    re_model = keras.models.load_model('KerasNN_Model1')
-    model.save('KerasNN_Model2')
-    re_model = keras.models.load_model('KerasNN_Model2')
-    '''
-    
-    #training of the three NN
-    model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
-    model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
-    model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
-    
-    #Predictions, plotting and AMS computation
-    Output ,Label_Predict = Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2)
-    Te_Label = pd.concat([Te_Label0, Te_Label1, Te_Label2])
-    Te_KaggleWeight = pd.concat([Te_KaggleWeight0, Te_KaggleWeight1, Te_KaggleWeight2])
-    
-    plot_NN(0, history0, model0, TestSet0, Te_Label0)
-    plot_NN(1, history1, model1, TestSet1, Te_Label1)
-    plot_NN(2, history2, model2, TestSet2, Te_Label2)
-    
-    Cut = np.linspace(0.5, 1, num=200)
-    AMS_values = Plot_AMS_NN(Cut, Te_Label, Label_Predict, Te_KaggleWeight, Output)
+        play(Model = options.model, datapath = options.datapath)
+
+    except argparse.ArgumentError:
+        print('Catching an argumentError')
+
     
