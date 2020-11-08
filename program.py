@@ -711,7 +711,21 @@ def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     return
 
 def play(Model, datapath):
+    '''
+    
 
+    Parameters
+    ----------
+    Model : TYPE
+        DESCRIPTION.
+    datapath : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    '''
     data_file = get_data(datapath)
     #data_file = get_data('atlas-higgs-challenge-2014-v2.csv')
     
@@ -813,7 +827,7 @@ def play(Model, datapath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", default= "NN", choices = ["NN", "BDT"], help="Choose the model you want to use")
-    parser.add_argument("-p", "--datapath", default= datapath, help="data path of csv file")
+    parser.add_argument("-p", "--datapath", default= datapath, help="Data path of csv file")
     try:
         parser.parse_args()
         options = parser.parse_args()
