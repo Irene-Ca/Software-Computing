@@ -79,6 +79,10 @@ Higgs Kaggle Challenge on [Kaggle platform](https://www.kaggle.com/c/higgs-boson
 
 Open data: http://opendata.cern.ch/record/328
 
+Keras: [Keras website](https://keras.io/about/)
+
+XGBoost: [XGBoost Documentation](https://xgboost.readthedocs.io/en/latest/)
+
 ## Software and libraries required
 - Python 3
 - numpy
