@@ -20,7 +20,7 @@ datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014
 
 def get_data(datapath):
     '''
-    Downloads the dataset, saves it on disk.
+    Function to download the dataset and saves it on disk.
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ def Train_Valid_Test(df):
 def Split_Jets(df):
     '''
     Distinguishes the events with respect to the number of jets ('PRI_jet_num' variable) into three different subsets:
-        events with zero jets, events with one jet and events with two or more jets.
+    events with zero jets, events with one jet and events with two or more jets.
 
     Parameters
     ----------
@@ -318,7 +318,7 @@ def Clean_1_Jet(Train, Val, Test):
 
 def compiling_model(n_jet):
     '''
-    Neural Network construction, compilation and saving.
+    Defines Neural Network structure, then compilation.
 
     Parameters
     ----------
@@ -351,8 +351,7 @@ def compiling_model(n_jet):
     return model
 
 def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
-    '''
-    
+    '''    
     Neural Network training and validation.
     
     Parameters
@@ -377,7 +376,6 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
         Sequntial NN object trained on a specific subset, defined by n_jet.
     history : History.history
         Record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
-
 
     '''
     checkpoint = ModelCheckpoint( 'model_check_point.h5',
@@ -460,8 +458,6 @@ def plot_NN(n_jet, history, model, TestSet, Te_Label):
     plt.xlabel('DNN Output')
     plt.ylabel('Counts')
     plt.yscale('log')
-    plt.legend()
-    
     DNN_Output = model.predict(TestSet)[:,0]
     plt.hist([DNN_Output[Te_Label==0], DNN_Output[Te_Label==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
     plt.savefig(output_name_fig)
@@ -516,7 +512,7 @@ def cross_validation(seed, dtrain):
     Parameters
     ----------
     seed : Int
-        Random seed. It's important to properly compare the scores with different parameters.
+        Random seed.
 
     Returns
     -------
@@ -541,16 +537,18 @@ def cross_validation(seed, dtrain):
 
 def train_BDT(dvalid, dtrain):
     '''
-    Trains a BDT with given parameters, values founded using cross validation.
+    Trains a BDT with given parameters (values founded by using cross validation).
 
     Returns
     -------
     score : Int
-        evaluation score at the best iteration.
+        Evaluation score at the best iteration.
     iteration : Int
-        at which boosting iteration the best score has occurred.
+        Iteration at which boosting iteration the best score has occurred.
     ntree_lim : Int
-        variable used to get predictions from the best iteration during BDT training.
+        Variable used to get predictions from the best iteration during BDT training.
+    bst : trained booster model
+        Booster
 
     '''
     #These are the parameters used by the train method of xgb
@@ -571,7 +569,6 @@ def train_BDT(dvalid, dtrain):
     num_round = 2000
     bst = xgb.train(params, dtrain, num_round , evals = evallist, early_stopping_rounds=25)
     bst.save_model('BDT.model')
-    #print('best_score ', bst.best_score, "\n" 'best_iteration ', bst.best_iteration, "\n" 'best_ntree_limit ', bst.best_ntree_limit)
     score = bst.best_score
     iteration = bst.best_iteration
     ntree_lim = bst.best_ntree_limit
@@ -585,8 +582,8 @@ def plot_BDT(bst):
 
     Parameters
     ----------
-    bst : XGBModel
-        XGBModel instance.
+    bst : trained booster model
+        Booster
 
     Returns
     -------
@@ -609,32 +606,23 @@ def plot_BDT(bst):
 
 
 #Plotting AMS
-def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
+def AMS(Cut, Label, Label_Predict, KaggleWeight, Output):
     '''
     Function to compute the Approximate Median Significance(AMS) of the total classificator.
 
     Parameters
     ----------
-    Model : Int
-        it determines which the model is used for the classification.
-        if Model == 1 : NNs 
-        if Model == 2 : BDT.
     Cut : float
-        it must assume values in the range [0,1[
+        It must assume values in the range [0,1[
     Label : numpy.array
-        true labels of the whole test set.
+        True labels of the whole test set.
     Label_Predict : numpy.array
-        class inferences done by the three Neural Networks over the corresponding test sets.
-        They are joined together to have predictions for each event of the whole test set.
+        Class inferences done by the model over the corresponding test set.
     KaggleWeight : numpy.array
         KaggleWeight variables of the whole test set.
     Output : numpy.array
-        if Model == 1 : 
-            inferences done by the three Neural Networks over the corresponding test sets.
-            They are joined together to have predictions for each event of the whole test set.
-        if Model == 2 :
-            inferences done by the BDT over the test set.
-
+        Inferences done by the model over the corresponding test set.
+            
     Returns
     -------
     float
@@ -657,15 +645,26 @@ def AMS(Model, Cut, Label, Label_Predict, KaggleWeight, Output):
     return (np.sqrt(2*((s+b+breg)*np.log(1+(s/(b+breg)))-s)))
 
 
-def Plot_AMS_NN(x ,Te_Label, Label_Predict, Te_KaggleWeight, Output):
+def Plot_AMS_NN(x, Te_Label, Label_Predict, Te_KaggleWeight, Output):
     '''
     Computes and plots the AMS value for different values of the Cut variable.
     The maximum AMS score is printed.
+    Function used for the NN.
 
     Parameters
     ----------
     x : numpy.linspace
         Sequence of numbers between 0.5 and 1.
+    Te_Label : pandas.dataframe
+        testset containing the Label variables.
+    Label_Predict : numpy.array
+        class inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
+    Te_KaggleWeight : pandas.dataframe
+        testset containing the KaggleWeight variables.
+    Output : numpy.array
+        inferences done by the three Neural Networks over the corresponding test sets.
+        They are joined together to have predictions for each event of the whole test set.
 
     Returns
     -------
@@ -676,7 +675,7 @@ def Plot_AMS_NN(x ,Te_Label, Label_Predict, Te_KaggleWeight, Output):
     AMS_values = np.zeros(np.size(x))
     i = 0
     while i < np.size(x):
-        AMS_values[i] = AMS(1, x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
+        AMS_values[i] = AMS(x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
         i += 1
     MaxAMS = np.amax(AMS_values)
     print('Maximum AMS for TestSet:', MaxAMS)
@@ -687,7 +686,31 @@ def Plot_AMS_NN(x ,Te_Label, Label_Predict, Te_KaggleWeight, Output):
     plt.clf()
     
 def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
-    
+    '''
+    Computes and plots the AMS value for different values of the Cut variable.
+    The maximum AMS score is printed.
+    Function used for the BDT
+
+    Parameters
+    ----------
+    x : numpy.linspace
+        Sequence of numbers between 0.5 and 1.
+    dtest : DMatrix 
+        The testinging DMatrix.
+    Te_Label : pandas.dataframe
+        Testset containing the Label variables.
+    Te_KaggleWeight : pandas.dataframe
+        Testset containing the KaggleWeight variables.
+    bst : trained booster model
+        Booster
+    ntree_lim : Int
+        Variable used to get predictions from the best iteration during BDT training.
+
+    Returns
+    -------
+    None.
+
+    '''    
     Output = bst.predict(dtest, ntree_limit=ntree_lim)
     Output = np.asarray(Output)
     Label_Predict = np.asarray([np.round(line) for line in Output])
@@ -699,7 +722,7 @@ def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     AMS_values = np.zeros(np.size(x))
     i = 0
     while i < np.size(x):
-        AMS_values[i] = AMS(2, x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
+        AMS_values[i] = AMS(x[i], Te_Label, Label_Predict, Te_KaggleWeight, Output)
         i += 1
     MaxAMS = np.amax(AMS_values)
     print('Maximum AMS for TestSet:', MaxAMS)
@@ -708,18 +731,18 @@ def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     plt.ylabel('AMS Score')
     plt.savefig('AMS_Score.pdf')
     plt.clf()
-    return
 
 def play(Model, datapath):
     '''
-    
+    Function called for the execution of the program.
 
     Parameters
     ----------
-    Model : TYPE
-        DESCRIPTION.
-    datapath : TYPE
-        DESCRIPTION.
+    Model : String
+        Defines which model will be used for the classification of the dataset: Boosted Decision Tree('BDT') or Neural Network ('NN').
+        If not defined by the user 'NN' is the default value.
+    datapath : String
+        Path of data in csv format that should be downloaded.
 
     Returns
     -------
