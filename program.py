@@ -20,7 +20,7 @@ datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014
 
 def get_data(datapath):
     '''
-    Function to download the dataset and saves it on disk.
+    Function to download the dataset and to save it on disk.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def get_data(datapath):
 def Adding_Feature_Category(df):
     '''
     Denotes to which category the event belongs and adds a new feature to the dataset.
-    It can assume three possible values: 
+    The new feature can assume three possible values: 
         2 for the boosted category,
         1 for the VBF category,
         0 for those events that do not belong to a defined category.
@@ -130,7 +130,7 @@ def Clean_Missing_Data(df):
     df : pandas.dataframe
         Dataframe with mean values in place of the missing data values.
     feature_list : list
-        list of column names that contain missing values.
+        list of column names that could contain missing values.
 
     '''
     feature_list = df.columns.tolist()
@@ -318,18 +318,18 @@ def Clean_1_Jet(Train, Val, Test):
 
 def compiling_model(n_jet):
     '''
-    Defines Neural Network structure, then compilation.
+    Defines the Neural Network structure, then its compilation.
 
     Parameters
     ----------
     n_jet : Int
-        denotes on which subset the NN has to be trained.
+        denotes on which subset the NN will be trained.
         The distinction is between events with zero jets (n_jet = 0), events with one jet (n_jet =1) and events with two or more jets (n_jet =2).
 
     Returns
     -------
     model : keras.engine.sequential.Sequential
-        Sequntial NN object trained on a specific subset, defined by n_jet.
+        Sequntial NN object.
     
     '''
     model = Sequential()
@@ -357,7 +357,7 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
     Parameters
     ----------
     n_jet : Int
-        denotes on which subset the NN has to be trained.
+        denotes on which subset the NN is trained.
         The distinction is between events with zero jets (n_jet = 0), events with one jet (n_jet =1) and events with two or more jets (n_jet =2).
     TrainingSet : pandas.dataframe
         events used for the training.
@@ -384,20 +384,15 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
                                  save_best_only=True,
                                  verbose=1)
     model = compiling_model(n_jet)
-    if n_jet == 0:
-        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-    elif n_jet == 1:
-        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-    elif n_jet ==2:
-        history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     return model, history
 
     
 def plot_NN(n_jet, history, model, TestSet, Te_Label):
     '''
     Produces three different plots:
-        a) loss function evaluated at each epoch for the training and the validation set
-        b) accuracy evaluated at each epoch for the training and the validation set
+        a) loss function evaluated at each epoch for the training and the validation sets
+        b) accuracy evaluated at each epoch for the training and the validation sets
         c) output of the Deep Neural Network: value of the prediction obtained on the events of the test sets.
 
     Parameters
@@ -409,7 +404,7 @@ def plot_NN(n_jet, history, model, TestSet, Te_Label):
     model : keras.engine.sequential.Sequential
         Sequntial NN object trained on a specific subset, defined by n_jet.
     TestSet : pandas.dataframe
-        events used for test.        
+        events used for testing.        
     Te_Label : pandas.dataframe
         labels corresponding to test data.
 
@@ -505,39 +500,40 @@ def Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2):
     return Output, Label_Predict
 
 # BDT functions
-def cross_validation(seed, dtrain):
+def cross_validation(seed, dtrain, CVparams):
     '''
-    function to perform cross validation before training.
+    Function to perform cross validation before training.
 
     Parameters
     ----------
     seed : Int
         Random seed.
+    dtrain : DMatrix 
+        The training DMatrix.
+    CVparams : dict
+        Parameters to tune with cross validation.        
 
     Returns
     -------
     res : list(string)
         Evaluation history.
 
-    '''
-    # Parameters to tune with cross validation
-    CVparams = {'objective' : 'binary:logistic',
-                'bst:max_depth' : 9,
-                'min_child_weight' : 7, 
-                'gamma' : 0, 
-                'sub_sample' : 0.5,
-                'colsample_bytree' : 0.5, 
-                'bst:eta' : 0.1,
-                'eval_metric' : ['ams@0.15', 'auc'],
-                'silent' : 1,
-                'nthread' : 16}
-        
-    res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 999, seed = seed, early_stopping_rounds=25)
+    '''        
+    res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 999, seed = seed, verbose_eval = 1, early_stopping_rounds=25)
     return res
 
-def train_BDT(dvalid, dtrain):
+def train_BDT(dvalid, dtrain, BDT_params):
     '''
-    Trains a BDT with given parameters (values founded by using cross validation).
+    Trains a BDT with given parameters (values finded by using cross validation).
+
+    Parameters
+    ----------
+    dvalid : DMatrix 
+        The validating DMatrix.
+    dtrain : DMatrix 
+        The training DMatrix.
+    BDT_params : dict
+        Parameters for training.  
 
     Returns
     -------
@@ -548,26 +544,13 @@ def train_BDT(dvalid, dtrain):
     ntree_lim : Int
         Variable used to get predictions from the best iteration during BDT training.
     bst : trained booster model
-        Booster
+        Booster.
 
     '''
-    #These are the parameters used by the train method of xgb
-    # so they have been already updated to their best values
-    #founded with hyperparameters tuning with cross validation
-    params = {'objective' : 'binary:logistic',
-              'bst:max_depth' : 9,
-              'min_child_weight' : 7, 
-              'gamma' : 0, 
-              'sub_sample' : 0.9,
-              'colsample_bytree' : 0.9, 
-              'bst:eta' : 0.1,
-              'eval_metric' : ['ams@0.15', 'auc'],
-              'silent' : 1,
-              'nthread' : 16}
     evallist = [(dvalid, 'eval'), (dtrain, 'train')]
     #training
     num_round = 2000
-    bst = xgb.train(params, dtrain, num_round , evals = evallist, early_stopping_rounds=25)
+    bst = xgb.train(BDT_params, dtrain, num_round, evals = evallist, early_stopping_rounds=25)
     bst.save_model('BDT.model')
     score = bst.best_score
     iteration = bst.best_iteration
@@ -583,7 +566,7 @@ def plot_BDT(bst):
     Parameters
     ----------
     bst : trained booster model
-        Booster
+        Booster.
 
     Returns
     -------
@@ -626,7 +609,7 @@ def AMS(Cut, Label, Label_Predict, KaggleWeight, Output):
     Returns
     -------
     float
-        Value of the AMS function, for a specific value of Cut.
+        Value of the AMS function for a specific value of Cut.
 
     '''
     
@@ -647,7 +630,7 @@ def AMS(Cut, Label, Label_Predict, KaggleWeight, Output):
 
 def Plot_AMS_NN(x, Te_Label, Label_Predict, Te_KaggleWeight, Output):
     '''
-    Computes and plots the AMS value for different values of the Cut variable.
+    Computes and plots the AMS value for different values of the x sequence.
     The maximum AMS score is printed.
     Function used for the NN.
 
@@ -687,9 +670,9 @@ def Plot_AMS_NN(x, Te_Label, Label_Predict, Te_KaggleWeight, Output):
     
 def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     '''
-    Computes and plots the AMS value for different values of the Cut variable.
+    Computes and plots the AMS value for different values of the x sequence.
     The maximum AMS score is printed.
-    Function used for the BDT
+    Function used for the BDT.
 
     Parameters
     ----------
@@ -740,7 +723,7 @@ def play(Model, datapath):
     ----------
     Model : String
         Defines which model will be used for the classification of the dataset: Boosted Decision Tree('BDT') or Neural Network ('NN').
-        If not defined by the user 'NN' is the default value.
+        If not defined by the user 'NN' is passed as default value.
     datapath : String
         Path of data in csv format that should be downloaded.
 
@@ -833,17 +816,40 @@ def play(Model, datapath):
         dvalid = xgb.DMatrix(data = ValidationSet, label = V_Label, weight = V_KaggleWeight, missing = -999.0)
         dtest = xgb.DMatrix(data = TestSet, label = Te_Label, weight = Te_KaggleWeight, missing = -999.0)
         
+        '''
         #Cross Validation
-        #res = cross_validation(seed, dtrain)
-        #print('CV results'"\n", res)
-        
-        
-        score, iteration, ntree_lim, bst = train_BDT(dvalid, dtrain)
+        CVparams = {'objective' : 'binary:logistic',
+                'bst:max_depth' : 9,
+                'min_child_weight' : 7, 
+                'gamma' : 0, 
+                'sub_sample' : 0.5,
+                'colsample_bytree' : 0.5, 
+                'bst:eta' : 0.1,
+                'eval_metric' : ['ams@0.15', 'auc'],
+                'silent' : 1,
+                'nthread' : 16}
+        res = cross_validation(seed, dtrain, CVparams)
+        print('CV results'"\n", res)
+        '''
+        #These are the parameters used by the train method of xgb
+        # so they have been already updated to their best values
+        #founded with hyperparameters tuning with cross validation
+        params = {'objective' : 'binary:logistic',
+                  'bst:max_depth' : 9,
+                  'min_child_weight' : 7, 
+                  'gamma' : 0, 
+                  'sub_sample' : 0.9,
+                  'colsample_bytree' : 0.9, 
+                  'bst:eta' : 0.1,
+                  'eval_metric' : ['ams@0.15', 'auc'],
+                  'silent' : 1,
+                  'nthread' : 16}
+        score, iteration, ntree_lim, bst = train_BDT(dvalid, dtrain, params)
         #bst = xgb.Booster({'nthread': 4})  # init model
         #bst.load_model('BDT.model')  # load data
 
         print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
-    
+        plot_BDT(bst)
         Cut = np.linspace(0.5, 1, num=200)
         AMS_values = Plot_AMS_BDT(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
 
