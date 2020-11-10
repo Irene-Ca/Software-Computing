@@ -549,7 +549,7 @@ def train_BDT(dvalid, dtrain, BDT_params):
     '''
     evallist = [(dvalid, 'eval'), (dtrain, 'train')]
     #training
-    num_round = 2000
+    num_round = 3000
     bst = xgb.train(BDT_params, dtrain, num_round, evals = evallist, early_stopping_rounds=25)
     bst.save_model('BDT.model')
     score = bst.best_score
@@ -573,19 +573,17 @@ def plot_BDT(bst):
     None.
 
     '''
-    xgb.plot_tree(bst, num_trees=4)
-    fig = plt.gcf()
-    fig.set_size_inches(150, 100)
-    fig.savefig('plotTreeHiggs.pdf')
-    plt.clf()
-    plt.show()
-
     xgb.plot_importance(bst)
     fig = plt.gcf()
     fig.set_size_inches(20, 10)
     fig.savefig('plotImportanceHiggs.pdf') 
     plt.clf()
-    plt.show()
+    
+    xgb.plot_tree(bst, num_trees=4)
+    fig = plt.gcf()
+    fig.set_size_inches(15, 10)
+    fig.savefig('plotTreeHiggs.pdf')
+    plt.clf()
 
 
 #Plotting AMS
@@ -620,7 +618,7 @@ def AMS(Cut, Label, Label_Predict, KaggleWeight, Output):
     Label_Predict_Cut = np.concatenate((Label_Predict[Output > Cut], Label_Predict[Output < (1-Cut)]))
     Label_Cut = pd.concat([Label_Cut, Label[Output < (1-Cut)]], ignore_index=True)
     KaggleWeight_Cut = pd.concat([KaggleWeight_Cut, KaggleWeight[Output < (1-Cut)]], ignore_index=True)
-    s = np.sum(KaggleWeight_Cut[Label_Predict_Cut & Label_Cut == 1])
+    s = np.sum(KaggleWeight_Cut[(Label_Predict_Cut == 1) & (Label_Cut == 1)])
     KaggleWeight_Cut = KaggleWeight_Cut[Label_Predict_Cut == 1]
     Label_Cut = Label_Cut[Label_Predict_Cut == 1]
     b = np.sum(KaggleWeight_Cut[Label_Cut == 0])
