@@ -519,7 +519,7 @@ def cross_validation(seed, dtrain, CVparams):
         Evaluation history.
 
     '''        
-    res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 999, seed = seed, verbose_eval = 1, early_stopping_rounds=25)
+    res = xgb.cv(CVparams, dtrain, nfold= 5, num_boost_round = 500, seed = seed, verbose_eval = 1, early_stopping_rounds=25)
     return res
 
 def train_BDT(dvalid, dtrain, BDT_params):
@@ -854,7 +854,7 @@ def play(Model, datapath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", default= "NN", choices = ["NN", "BDT"], help="Choose the model you want to use")
-    parser.add_argument("-p", "--datapath", default= datapath, help="Data path of csv file")
+    parser.add_argument("-d", "--datapath", default= datapath, help="Data path of csv file")
     try:
         parser.parse_args()
         options = parser.parse_args()

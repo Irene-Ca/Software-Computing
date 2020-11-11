@@ -27,6 +27,27 @@ The performance of the two algorithms is evaluated by computing the Approximate 
  	
 ![alt tag](https://github.com/IreneCa-gh/Software-Computing/blob/master/Images/AMSfunc.png)
  	
+## Usage
+To run the script program.py you have to type on the Command Line:
+    $ python program.py 
+By default, the dataset will be downloaded from an interned link, saved on disk and the Neaural Networks algorithm will be trained.
+
+If you have already downloaded the dataset as csv file and you want to use it, type on Command Line:
+    $ python program.py --datapath <data path>
+    or
+    $ python program.py -d <data path>
+Where <data path> is the data path of your csv file
+
+Sice two different algorithms can be used for the classification, you can state on the Command Line which algorithm should be used.
+    To train the model based on three Deep Neural Networks:
+        $ python program.py --model NN
+        or
+        $ python program.py -m NN
+    To train boosted decision tree:
+        $ python program.py --model BDT
+        or
+        $ python program.py -m BDT
+    
 ## Notes
 - **Splitting into training set, validation set and test set:** 
 this splitting was done by looking the KaggleSet variable, which allows to recover the original Kaggle training, public and private data sets provided for the challenge. 
