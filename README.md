@@ -32,7 +32,7 @@ To run the script program.py you have to type on the Command Line:
     
     $ python program.py
 
-By default, the dataset will be downloaded from an interned link, saved on disk and the Neaural Networks algorithm will be trained.
+By default, the dataset will be downloaded from an internet link, saved on disk and the Neaural Networks algorithm will be trained.
 
 If you have already downloaded the dataset as csv file and you want to use it, type on Command Line:
     
@@ -42,7 +42,7 @@ If you have already downloaded the dataset as csv file and you want to use it, t
     
     $ python program.py -d <data path>
     
-Where <data path> is the data path of your csv file
+Where '<data path>' is the data path of your csv file.
 
 Sice two different algorithms can be used for the classification, you can state on the Command Line which algorithm should be used.
     

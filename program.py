@@ -582,7 +582,7 @@ def plot_BDT(bst):
     xgb.plot_tree(bst, num_trees=4)
     fig = plt.gcf()
     fig.set_size_inches(15, 10)
-    fig.savefig('plotTreeHiggs.pdf')
+    fig.savefig('plotTreeHiggs.pdf', dpi = 300)
     plt.clf()
 
 
@@ -663,7 +663,7 @@ def Plot_AMS_NN(x, Te_Label, Label_Predict, Te_KaggleWeight, Output):
     plt.plot(x, AMS_values)
     plt.xlabel('Cut')
     plt.ylabel('AMS Score')
-    plt.savefig('AMS_Score.pdf')
+    plt.savefig('AMS_Score_NN.pdf')
     plt.clf()
     
 def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
@@ -710,7 +710,7 @@ def Plot_AMS_BDT(x, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim):
     plt.plot(x, AMS_values)
     plt.xlabel('Cut')
     plt.ylabel('AMS Score')
-    plt.savefig('AMS_Score.pdf')
+    plt.savefig('AMS_Score_BDT.pdf')
     plt.clf()
 
 def play(Model, datapath):
