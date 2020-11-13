@@ -747,6 +747,7 @@ def play(Model, datapath):
     df['Label'] = Label_to_Binary(df['Label'])
     
     if (Model == 'NN'):
+        #CLASSIFICATION WITH NEURAL NETWORKS
         df, feature_list =  Clean_Missing_Data(df)
         #Scaling of features that could span wide ranges
         scaler = StandardScaler()
@@ -775,19 +776,11 @@ def play(Model, datapath):
         TrainingSet0, ValidationSet0, TestSet0 = Clean_0_Jet(TrainingSet0, ValidationSet0, TestSet0)
         TrainingSet1, ValidationSet1, TestSet1 = Clean_1_Jet(TrainingSet1, ValidationSet1, TestSet1)
         
-        '''
-        model.save('KerasNN_Model0')
-        re_model = keras.models.load_model('KerasNN_Model0')
-        model.save('KerasNN_Model1')
-        re_model = keras.models.load_model('KerasNN_Model1')
-        model.save('KerasNN_Model2')
-        re_model = keras.models.load_model('KerasNN_Model2')
-        '''
-        
         #training of the three NN
         model0, history0 = training_model(0, TrainingSet0, Tr_Label0, ValidationSet0 ,V_Label0, Epoch_Value)
         model1, history1 = training_model(1, TrainingSet1, Tr_Label1, ValidationSet1 ,V_Label1, Epoch_Value)
         model2, history2 = training_model(2, TrainingSet2, Tr_Label2, ValidationSet2 ,V_Label2, Epoch_Value)
+        
         
         #Predictions, plotting and AMS computation
         Output ,Label_Predict = Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2)
@@ -843,10 +836,8 @@ def play(Model, datapath):
                   'silent' : 1,
                   'nthread' : 16}
         score, iteration, ntree_lim, bst = train_BDT(dvalid, dtrain, params)
-        #bst = xgb.Booster({'nthread': 4})  # init model
-        #bst.load_model('BDT.model')  # load data
 
-        print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
+        #print('best_score ', score, "\n" 'best_iteration ', iteration, "\n" 'best_ntree_limit ', ntree_lim)
         plot_BDT(bst)
         Cut = np.linspace(0.5, 1, num=200)
         AMS_values = Plot_AMS_BDT(Cut, dtest, Te_Label, Te_KaggleWeight, bst, ntree_lim)
