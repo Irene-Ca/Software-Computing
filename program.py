@@ -416,16 +416,16 @@ def plot_NN(n_jet, history, model, TestSet, Te_Label):
     lt = ['Model loss for ', n_jet,' Jets DataSet']
     at = ['Accuracy for ', n_jet,' Jets DataSet']
     ot = ['TestSet Distribution for ', n_jet, ' Jets DataSet']
-    l_save = ['Loss_', n_jet, 'Jet.pdf']
-    a_save = ['Acc_', n_jet, 'Jet.pdf']
-    o_save =['DNN_Output_', n_jet, 'Jet.pdf']
+    l_save = ['Loss', n_jet, 'Jet.pdf']
+    a_save = ['Acc', n_jet, 'Jet.pdf']
+    o_save =['DNN_Output', n_jet, 'Jet.pdf']
     
     l_title =' '.join([str(elem) for elem in lt])
     a_title =' '.join([str(elem) for elem in at])
     o_title =' '.join([str(elem) for elem in ot])
-    loss_name_fig =' '.join([str(elem) for elem in l_save])
-    acc_name_fig =' '.join([str(elem) for elem in a_save])
-    output_name_fig =' '.join([str(elem) for elem in o_save])
+    loss_name_fig ='_'.join([str(elem) for elem in l_save])
+    acc_name_fig ='_'.join([str(elem) for elem in a_save])
+    output_name_fig ='_'.join([str(elem) for elem in o_save])
     
     
     plt.figure()
