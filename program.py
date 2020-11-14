@@ -385,6 +385,9 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
                                  verbose=1)
     model = compiling_model(n_jet)
     history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    save =['KerasNN', n_jet, 'Model']
+    NN_name ='_'.join([str(elem) for elem in save])
+    model.save(NN_name)
     return model, history
 
     

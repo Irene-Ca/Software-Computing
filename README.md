@@ -36,13 +36,13 @@ By default, the dataset will be downloaded from an internet link, saved on disk 
 
 If you have already downloaded the dataset as csv file and you want to use it, type on Command Line:
     
-    $ python program.py --datapath <data path>
+    $ python program.py --datapath <data_path>
     
     or
     
-    $ python program.py -d <data path>
+    $ python program.py -d <data_path>
     
-Where '<data path>' is the data path of your csv file.
+Where <data_path> is the data path of your csv file.
 
 Sice two different algorithms can be used for the classification, you can state on the Command Line which algorithm should be used.
     
