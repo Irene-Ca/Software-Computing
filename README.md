@@ -28,9 +28,9 @@ The performance of the two algorithms is evaluated by computing the Approximate 
 ![alt tag](https://github.com/IreneCa-gh/Software-Computing/blob/master/Images/AMSfunc.png)
 
 Where 
-    - s represents the true positive rate
-    - b indicates the false negative rate 
-    - b_reg is a constant regularisation term equal to 10.
+-  s represents the true positive rate
+- b indicates the false negative rate 
+- b_reg is a constant regularisation term equal to 10.
  	
 ## Usage
 To run the script program.py you have to type on the Command Line:
