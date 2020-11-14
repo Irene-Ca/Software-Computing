@@ -127,7 +127,7 @@ XGBoost: [XGBoost Documentation](https://xgboost.readthedocs.io/en/latest/)
 - Python 3
 - numpy
 - pandas
-- Scikit-learn: Python’s open source machine learning library
+- Scikit-learn
 - matplotlib
 - Keras
 - XGBoost
