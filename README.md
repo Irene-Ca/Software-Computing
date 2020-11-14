@@ -26,6 +26,11 @@ Two different approaches were developed to classify the events.
 The performance of the two algorithms is evaluated by computing the Approximate Median Significance (AMS) score, which is defined as
  	
 ![alt tag](https://github.com/IreneCa-gh/Software-Computing/blob/master/Images/AMSfunc.png)
+
+Where 
+    - s represents the true positive rate
+    - b indicates the false negative rate 
+    - b_reg is a constant regularisation term equal to 10.
  	
 ## Usage
 To run the script program.py you have to type on the Command Line:
