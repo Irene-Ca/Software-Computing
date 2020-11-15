@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import numpy as np
 import pandas as pd
@@ -387,12 +387,11 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
                                  save_best_only=True,
                                  verbose=1)
     model = compiling_model(n_jet)
-    history = model.fit(TrainingSet, T_Label, validation_split=0, validation_data=(ValidationSet ,V_Label), epochs=epoch, batch_size=700, callbacks=[checkpoint])
+    history = model.fit(np.asarray(TrainingSet, dtype = 'float32'), np.asarray(T_Label, dtype = 'float32'), validation_split=0, validation_data=(np.asarray(ValidationSet, dtype = 'float32') , np.asarray(V_Label, dtype = 'float32') ), epochs=epoch, batch_size=700, callbacks=[checkpoint])
     save =['KerasNN', n_jet, 'Model']
     NN_name ='_'.join([str(elem) for elem in save])
     model.save(NN_name)
     return model, history
-
     
 def plot_NN(n_jet, history, model, TestSet, Te_Label):
     '''
@@ -459,7 +458,7 @@ def plot_NN(n_jet, history, model, TestSet, Te_Label):
     plt.xlabel('DNN Output')
     plt.ylabel('Counts')
     plt.yscale('log')
-    DNN_Output = model.predict(TestSet)[:,0]
+    DNN_Output = model.predict(np.asarray(TestSet, dtype = 'float32'))[:,0]
     plt.hist([DNN_Output[Te_Label==0], DNN_Output[Te_Label==1]], color=['red', 'blue'], bins= 100, histtype = 'barstacked')
     plt.savefig(output_name_fig)
     plt.clf()
@@ -493,18 +492,17 @@ def Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2):
         They are joined together to have predictions for each event of the whole test set.
 
     '''
-    DNN_Output0 = model0.predict(TestSet0)[:,0]
-    DNN_Output1 = model1.predict(TestSet1)[:,0]
-    DNN_Output2 = model2.predict(TestSet2)[:,0]
+    DNN_Output0 = model0.predict(np.asarray(TestSet0, dtype = 'float32'))[:,0]
+    DNN_Output1 = model1.predict(np.asarray(TestSet1, dtype = 'float32'))[:,0]
+    DNN_Output2 = model2.predict(np.asarray(TestSet2, dtype = 'float32'))[:,0]
     
-    Label_Predict0 = model0.predict_classes(TestSet0)[:,0]
-    Label_Predict1 = model1.predict_classes(TestSet1)[:,0]
-    Label_Predict2 = model2.predict_classes(TestSet2)[:,0]
+    Label_Predict0 = model0.predict_classes(np.asarray(TestSet0, dtype = 'float32'))[:,0]
+    Label_Predict1 = model1.predict_classes(np.asarray(TestSet1, dtype = 'float32'))[:,0]
+    Label_Predict2 = model2.predict_classes(np.asarray(TestSet2, dtype = 'float32'))[:,0]
     
     Output = np.concatenate((DNN_Output0, DNN_Output1, DNN_Output2))
     Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
     return Output, Label_Predict
-
 # BDT functions
 def cross_validation(seed, dtrain, CVparams):
     '''
