@@ -309,11 +309,11 @@ Function to compute the Approximate Median Significance(AMS) of the total classi
     ----------
     Cut : float
         It must assume values in the range [0,1[
-    Label : numpy.array
+    Label : pandas.dataframe
         True labels of the whole test set.
     Label_Predict : numpy.array
         Class inferences done by the model over the corresponding test set.
-    KaggleWeight : numpy.array
+    KaggleWeight : pandas.dataframe
         KaggleWeight variables of the whole test set.
     Output : numpy.array
         Inferences done by the model over the corresponding test set.
@@ -322,6 +322,7 @@ Function to compute the Approximate Median Significance(AMS) of the total classi
     -------
     float
         Value of the AMS function for a specific value of Cut.
+
 
 ## Plot_AMS_NN(x, Te_Label, Label_Predict, Te_KaggleWeight, Output)
 Computes and plots the AMS value for different values of the x sequence.

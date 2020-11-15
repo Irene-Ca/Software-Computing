@@ -598,11 +598,11 @@ def AMS(Cut, Label, Label_Predict, KaggleWeight, Output):
     ----------
     Cut : float
         It must assume values in the range [0,1[
-    Label : numpy.array
+    Label : pandas.dataframe
         True labels of the whole test set.
     Label_Predict : numpy.array
         Class inferences done by the model over the corresponding test set.
-    KaggleWeight : numpy.array
+    KaggleWeight : pandas.dataframe
         KaggleWeight variables of the whole test set.
     Output : numpy.array
         Inferences done by the model over the corresponding test set.
