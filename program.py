@@ -4,12 +4,12 @@
 import numpy as np
 import pandas as pd
 import requests
-from keras.models import Sequential
-from keras.layers.core import Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from keras.regularizers import l2
-from keras.callbacks import ModelCheckpoint
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.callbacks import ModelCheckpoint
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
 import argparse
@@ -19,7 +19,8 @@ seed = 12345
 np.random.seed(seed)
 Epoch_Value = 40
 
-datapath = "https://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
+datapath = "hhttps://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
+        
 
 def get_data(datapath):
     '''
