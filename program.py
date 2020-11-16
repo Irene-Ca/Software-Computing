@@ -494,9 +494,9 @@ def Predict_NN(model0, model1, model2, TestSet0, TestSet1, TestSet2):
     DNN_Output1 = model1.predict(np.asarray(TestSet1, dtype = 'float32'))[:,0]
     DNN_Output2 = model2.predict(np.asarray(TestSet2, dtype = 'float32'))[:,0]
     
-    Label_Predict0 = model0.predict_classes(np.asarray(TestSet0, dtype = 'float32'))[:,0]
-    Label_Predict1 = model1.predict_classes(np.asarray(TestSet1, dtype = 'float32'))[:,0]
-    Label_Predict2 = model2.predict_classes(np.asarray(TestSet2, dtype = 'float32'))[:,0]
+    Label_Predict0 = np.around(DNN_Output0)
+    Label_Predict1 = np.around(DNN_Output1)
+    Label_Predict2 = np.around(DNN_Output2)
     
     Output = np.concatenate((DNN_Output0, DNN_Output1, DNN_Output2))
     Label_Predict = np.concatenate((Label_Predict0, Label_Predict1, Label_Predict2))
