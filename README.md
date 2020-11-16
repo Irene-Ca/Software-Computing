@@ -124,11 +124,13 @@ Keras: [Keras website](https://keras.io/about/)
 XGBoost: [XGBoost Documentation](https://xgboost.readthedocs.io/en/latest/)
 
 ## Software and libraries required
-- Python 3
-- numpy
-- pandas
-- Scikit-learn
-- matplotlib
-- Keras
-- XGBoost
-- requests
+Package            Version
+------------------ ---------
+Keras               2.3.1
+matplotlib          3.1.3
+numpy               1.18.5
+pandas              1.0.3
+requests            2.25.0
+scikit-learn        0.21.2
+tensorflow          2.3.1
+xgboost             1.0.2
