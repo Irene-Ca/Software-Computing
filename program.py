@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 import requests
-from tensorflow.keras.models import Sequential
+from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ seed = 12345
 np.random.seed(seed)
 Epoch_Value = 40
 
-datapath = "hhttps://www.dropbox.com/s/dr64r7hb0fmy76p/atlas-higgs-challenge-2014-v2.csv?dl=1"
+datapath = "https://www.dropbox.com/s/2im46ciu7n4jv73/atlas-higgs-challenge-2014-v2.csv?dl=1"
         
 
 def get_data(datapath):
@@ -389,9 +389,6 @@ def training_model(n_jet, TrainingSet, T_Label, ValidationSet, V_Label, epoch):
                                  verbose=1)
     model = compiling_model(n_jet)
     history = model.fit(np.asarray(TrainingSet, dtype = 'float32'), np.asarray(T_Label, dtype = 'float32'), validation_split=0, validation_data=(np.asarray(ValidationSet, dtype = 'float32') , np.asarray(V_Label, dtype = 'float32') ), epochs=epoch, batch_size=700, callbacks=[checkpoint])
-    save =['KerasNN', n_jet, 'Model']
-    NN_name ='_'.join([str(elem) for elem in save])
-    model.save(NN_name)
     return model, history
     
 def plot_NN(n_jet, history, model, TestSet, Te_Label):
